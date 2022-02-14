@@ -54,6 +54,7 @@ describe("link", () => {
 		tx.update(() => inst.changeName("gg"));
 		expect(inst.name).toEqual("gg");
 		expect(tx.outputs.length).toEqual(2);
+		tx.publish()
 	});
 
 	test("Ctx", () => {

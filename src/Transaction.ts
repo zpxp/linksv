@@ -1,3 +1,4 @@
+import * as bsv from "bsv";
 import { LinkContext } from "src";
 
 export class Transaction {
@@ -10,13 +11,15 @@ export class Transaction {
 	private static _currentTx: Transaction;
 
 	private static set currentTx(value: Transaction) {
-		value._lastTx = Transaction._currentTx;
-		this._currentTx = value;
+		if (value !== Transaction._currentTx) {
+			value._lastTx = Transaction._currentTx;
+			this._currentTx = value;
+		}
 	}
 
 	private actions: RecordAction[] = [];
 	get outputs() {
-		return this.actions
+		return this.actions;
 	}
 
 	update<T>(action: () => T): T {
@@ -28,11 +31,11 @@ export class Transaction {
 		}
 	}
 
-	static _record(type: Records, target: string, args:any[]) {
+	static _record(type: Records, target: string, args: any[]) {
 		if (!Transaction._currentTx) {
 			throw new Error("Links can only be updated inside a Transaction");
 		}
-		Transaction._currentTx.actions.push({ type ,target, args });
+		Transaction._currentTx.actions.push({ type, target, args });
 	}
 
 	/**
@@ -44,6 +47,11 @@ export class Transaction {
 			this.actions = [];
 		}
 	}
+
+	publish(){
+		const btx = new bsv.Tx();
+		btx.addOutput(new bsv.Tx.Output({}))
+	}
 }
 
 export enum Records {
@@ -53,6 +61,6 @@ export enum Records {
 
 type RecordAction = {
 	type: Records;
-	target: string
-	args: any[]
+	target: string;
+	args: any[];
 };
