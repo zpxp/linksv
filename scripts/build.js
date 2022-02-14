@@ -7,7 +7,7 @@ process.env.NODE_ENV = "production";
 // Makes the script crash on unhandled rejections instead of silently
 // ignoring them. In the future, promise rejections that are not handled will
 // terminate the Node.js process with a non-zero exit code.
-process.on("unhandledRejection", err => {
+process.on("unhandledRejection", (err) => {
 	throw err;
 });
 
@@ -17,8 +17,6 @@ const webpack = require("webpack");
 const config = require("../config/webpack.config.js");
 const paths = require("../config/paths");
 const chalk = require("chalk");
-const tscompile = require("./compiler/tscompile");
-const tsconfig = require("../tsconfig.json");
 
 const useYarn = fs.existsSync(paths.yarnLockFile);
 
@@ -43,13 +41,13 @@ build()
 				console.log(chalk.green("Compiled successfully.\n"));
 			}
 		},
-		err => {
+		(err) => {
 			console.log(chalk.red("Failed to compile.\n"));
 			console.error(err);
 			process.exit(1);
 		}
 	)
-	.catch(err => {
+	.catch((err) => {
 		if (err && err.message) {
 			console.log(err.message);
 		}
@@ -97,7 +95,7 @@ function build() {
 function copyPublicFolder() {
 	fs.copySync(paths.appPublic, paths.appBuildDist, {
 		dereference: true,
-		filter: file => file !== paths.appHtml
+		filter: (file) => file !== paths.appHtml
 	});
 }
 
@@ -109,15 +107,16 @@ function isLikelyASyntaxError(message) {
 
 // Cleans up webpack error messages.
 function formatMessage(message) {
-	let lines = message.split("\n");
+	console.log(message.message);
+	let lines = message.message.split("\n");
 
 	// Strip Webpack-added headers off errors/warnings
 	// https://github.com/webpack/webpack/blob/master/lib/ModuleError.js
-	lines = lines.filter(line => !/Module [A-z ]+\(from/.test(line));
+	lines = lines.filter((line) => !/Module [A-z ]+\(from/.test(line));
 
 	// Transform parsing error into syntax error
 	// TODO: move this to our ESLint formatter?
-	lines = lines.map(line => {
+	lines = lines.map((line) => {
 		const parsingError = /Line (\d+):(?:(\d+):)?\s*Parsing error: (.+)$/.exec(line);
 		if (!parsingError) {
 			return line;
@@ -182,10 +181,10 @@ function formatMessage(message) {
 }
 
 function formatWebpackMessages(json) {
-	const formattedErrors = json.errors.map(function(message) {
+	const formattedErrors = json.errors.map(function (message) {
 		return formatMessage(message, true);
 	});
-	const formattedWarnings = json.warnings.map(function(message) {
+	const formattedWarnings = json.warnings.map(function (message) {
 		return formatMessage(message, false);
 	});
 	const result = { errors: formattedErrors, warnings: formattedWarnings };

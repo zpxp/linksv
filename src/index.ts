@@ -1,0 +1,1 @@
+export { GG } from "./gg";

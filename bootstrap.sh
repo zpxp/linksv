@@ -40,9 +40,9 @@ babel-polyfill \
 @typescript-eslint/eslint-plugin  \
 @typescript-eslint/parser  \
 eslint  \
-eslint-loader \
+eslint-webpack-plugin \
 eslint-plugin-react \
-chalk \
+chalk@2.4.1 \
 css-loader \
 file-loader \
 fs \
