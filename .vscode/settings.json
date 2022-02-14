@@ -1,0 +1,5 @@
+{
+	"typescript.tsdk": "node_modules\\typescript\\lib",
+	"search.usePCRE2": true,
+	"eslint.validate": [ "javascript", "javascriptreact", "html", "typescriptreact", "typescript" ],
+}

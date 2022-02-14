@@ -1,0 +1,28 @@
+{
+	"compilerOptions": {
+		"emitDecoratorMetadata": true,
+		"experimentalDecorators": true,
+		"allowSyntheticDefaultImports": true,
+		"esModuleInterop": true,
+		"target": "es5",
+		"declaration": true,
+		"sourceMap": true,
+		"noImplicitAny": true,
+		"moduleResolution": "node",
+		"noErrorTruncation": true,
+		"alwaysStrict": true,
+		"module": "es6",
+		"jsx": "react",
+		"baseUrl": ".",
+		"types": ["jest"],
+		"lib": [
+			"esnext",
+			"dom",
+			"webworker"
+		]
+	},
+	"include": [
+		"./node_modules/@types",
+		"./src/**/*"
+	]
+}
