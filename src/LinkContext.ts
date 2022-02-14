@@ -1,5 +1,5 @@
-import * as bsv from "bsv";
-import { Records, Transaction } from "./Transaction";
+import * as bsv from '@ts-bitcoin/core'
+import { Transaction } from "./Transaction";
 
 export class LinkContext {
 	wallet: Keys;
@@ -10,7 +10,7 @@ export class LinkContext {
 		const purseAddress = bsv.Address.fromPubKey(pursePub);
 		this.wallet = {
 			privateKey: purseKey,
-			publickKey: pursePub,
+			publicKey: pursePub,
 			address: purseAddress
 		};
 		LinkContext.activeContext = this;
@@ -29,6 +29,6 @@ export class LinkContext {
 
 type Keys = {
 	privateKey: bsv.PrivKey;
-	publickKey: bsv.PubKey;
+	publicKey: bsv.PubKey;
 	address: bsv.Address;
 };

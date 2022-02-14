@@ -1,4 +1,5 @@
-import * as bsv from "bsv";
+import { Bn, TxBuilder, TxOut, deps } from "@ts-bitcoin/core";
+
 import { LinkContext } from "src";
 
 export class Transaction {
@@ -48,9 +49,19 @@ export class Transaction {
 		}
 	}
 
-	publish(){
-		const btx = new bsv.Tx();
-		btx.addOutput(new bsv.Tx.Output({}))
+	publish() {
+		const txOut = TxOut.fromProperties(new Bn(2e8), this.ctx.wallet.address.toTxOutScript());
+		const txHashBuf = deps.Buffer.alloc(32).fill(0);
+
+		const tx = new TxBuilder()
+			.setFeePerKbNum(0.0001e8)
+			.setChangeAddress(this.ctx.wallet.address)
+			.inputFromPubKeyHash(txHashBuf, 0, txOut, this.ctx.wallet.publicKey)
+			.outputToAddress(new Bn(1e8), this.ctx.wallet.address)
+			.build();
+
+		const raw = tx.toHex();
+		console.log(raw);
 	}
 }
 

@@ -107,7 +107,9 @@ function isLikelyASyntaxError(message) {
 
 // Cleans up webpack error messages.
 function formatMessage(message) {
-	console.log(message);
+	if (message.message) {
+		message = message.message;
+	}
 	let lines = message.split("\n");
 
 	// Strip Webpack-added headers off errors/warnings
