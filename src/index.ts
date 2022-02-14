@@ -1,1 +1,1 @@
-export { GG } from "./gg";
+export { Template } from "./Template";
