@@ -5,32 +5,22 @@ set -e
 yarn init --yes
 
 ## add files and scripts to the new package.json
-jsonfile = './package.json'
+JSONFILE='./package.json'
 
-json = jq $jsonfile
-
-arr = echo '{"arr": ["dist/**/*","lib/**/*"	]}' | jq
-jq ".files = $arr" json
-
-arr2 = echo '{"scripts": {
+echo $( jq '.scripts += {
 		"analyze": "source-map-explorer dist/js/main.*",
 		"build": "yarn install && node scripts/build.js",
 		"test": "node scripts/test.js --passWithNoTests",
 		"new-version-patch": " yarn version --new-version patch",
 		"new-version": " yarn version"
-	}}' | jq
+ }' $JSONFILE ) > $JSONFILE
 
-jq ".script = $arr2" json
-
-arr3 = echo '{"peerDependencies": {}}' | ConvertFrom-Json
-jq ".peerDependencies = $arr3" json
-
-jq ".main = 'lib/index.js'" json
-
+echo $( jq '.files += ["dist/**/*","lib/**/*"	]' $JSONFILE ) > $JSONFILE
+echo $( jq '.peerDependencies += {}' $JSONFILE ) > $JSONFILE
+echo $( jq '.main += "lib/index.js"' $JSONFILE ) > $JSONFILE
 # side effects allows webpack to trim unused deps
-jq ".sideEffects = false" json
+echo $( jq ".sideEffects += false" $JSONFILE ) > $JSONFILE
 
-jq '.' > $jsonfile
 
 yarn add -D @babel/core \
 @babel/plugin-proposal-class-properties \
