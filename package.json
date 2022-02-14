@@ -9,6 +9,7 @@
 		"analyze": "source-map-explorer dist/js/main.*",
 		"build": "yarn install && node scripts/build.js",
 		"test": "node scripts/test.js --passWithNoTests",
+		"prepare": "install-peers -f",
 		"new-version-patch": " yarn version --new-version patch",
 		"new-version": " yarn version"
 	},
@@ -34,6 +35,7 @@
 		"file-loader": "^6.2.0",
 		"fs": "^0.0.1-security",
 		"fs-extra": "^10.0.0",
+		"install-peers-cli": "^2.2.0",
 		"jest": "^27.5.1",
 		"jest-pnp-resolver": "^1.2.2",
 		"jest-resolve": "^27.5.1",

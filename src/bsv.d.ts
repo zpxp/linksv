@@ -191,7 +191,7 @@ declare module "bsv" {
 		toHex(): string;
 		inspect(): string;
 
-		static fromPrivateKey(privateKey: PrivKey): PubKey;
+		static fromPrivKey(privateKey: PrivKey): PubKey;
 		static fromBuffer(buf: Buffer, strict: boolean): PubKey;
 		static fromDER(buf: Buffer, strict: boolean): PubKey;
 		//static fromPoint(point: Point, compressed: boolean): PublicKey;
@@ -418,6 +418,9 @@ declare module "bsv" {
 		readonly hashBuffer: Buffer;
 		readonly network: Networks.Network;
 		readonly type: string;
+		toString(): string;
+
+		static fromPubKey(pubKey: PubKey): Address;
 
 		constructor(data: Buffer | Uint8Array | string | object, network?: Networks.Network | string, type?: string);
 	}

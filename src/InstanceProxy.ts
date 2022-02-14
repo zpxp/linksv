@@ -1,12 +1,16 @@
+import { ChainObject } from "./ChainObject";
 import { Constants } from "./Constants";
+import { Records, Transaction } from "./Transaction";
 
 const instSymbol = Symbol("__instance");
 
 export function proxyInstance<T extends object>(inst: T): T {
 	return new Proxy<T>(inst, {
 		apply(target: T, thisArg: any, argArray: any[]): any {
-			console.log(target);
-			return (target as (...a: any[]) => void).apply(thisArg[instSymbol], argArray);
+			const parent = thisArg[instSymbol] as ChainObject;
+			Transaction._record(Records.CALL, parent.location, argArray);
+
+			return (target as (...a: any[]) => void).apply(parent, argArray);
 		},
 		defineProperty(): boolean {
 			throw new Error("Cannot define property outside method");
