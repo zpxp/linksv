@@ -1,5 +1,4 @@
-import { Bn, TxBuilder, TxOut, deps } from "@ts-bitcoin/core";
-
+import { Bn, TxBuilder, TxOut, deps, Script } from "bsv";
 import { LinkContext } from "src";
 
 export class Transaction {
@@ -49,7 +48,11 @@ export class Transaction {
 		}
 	}
 
-	publish() {
+	async publish(opts: { pay?: boolean; sign?: boolean } = { pay: true, sign: true }) {
+		const script = this.createScript();
+		const utxos = this.ctx.api.getUnspentUtxos(this.ctx.wallet.address.toString());
+		console.log(utxos);
+
 		const txOut = TxOut.fromProperties(new Bn(2e8), this.ctx.wallet.address.toTxOutScript());
 		const txHashBuf = deps.Buffer.alloc(32).fill(0);
 
@@ -60,13 +63,18 @@ export class Transaction {
 			.outputToAddress(new Bn(1e8), this.ctx.wallet.address)
 			.build();
 
-		const raw = tx.toHex();
+		const raw = tx.tx.toHex();
 		console.log(raw);
+	}
+
+	private createScript() {
+		const script = Script.fromSafeData(Buffer.from(JSON.stringify(this.actions)));
+		return script;
 	}
 }
 
 export enum Records {
-	CTOR = "CTOR",
+	NEW = "NEW",
 	CALL = "CALL"
 }
 

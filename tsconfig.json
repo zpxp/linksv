@@ -24,7 +24,9 @@
 			"jest"
 		],
 		"lib": [
-			"esnext",
+			"dom",
+			"dom.iterable",
+			"esnext"
 		]
 	},
 	"include": [

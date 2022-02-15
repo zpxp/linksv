@@ -1,13 +1,17 @@
-import * as bsv from '@ts-bitcoin/core'
+import * as bsv from 'bsv'
+import { WhatsOnChainApi } from './apis/WhatsOnChain';
+import { IApiProvider } from './IApiProvider';
 import { Transaction } from "./Transaction";
 
 export class LinkContext {
-	wallet: Keys;
+	readonly wallet: Keys;
+	readonly api: IApiProvider;
 
-	constructor(opts: { wallet: string }) {
+	constructor(opts: { wallet: string, api?: IApiProvider }) {
 		const purseKey = bsv.PrivKey.fromString(opts.wallet);
 		const pursePub = bsv.PubKey.fromPrivKey(purseKey);
 		const purseAddress = bsv.Address.fromPubKey(pursePub);
+		this.api = opts.api || new WhatsOnChainApi()
 		this.wallet = {
 			privateKey: purseKey,
 			publicKey: pursePub,

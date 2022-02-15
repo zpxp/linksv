@@ -10,7 +10,7 @@ export function Link(uniqueName: string) {
 
 		return new Proxy<T>(c, {
 			construct(target: any, argArray: any[], newTarget: any): object {
-				Transaction._record(Records.CTOR, uniqueName, argArray);
+				Transaction._record(Records.NEW, uniqueName, argArray);
 				return proxyInstance(Reflect.construct(target, argArray, newTarget));
 			},
 			defineProperty(): boolean {
