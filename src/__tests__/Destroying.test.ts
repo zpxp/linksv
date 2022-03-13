@@ -1,3 +1,4 @@
+/* eslint-disable prefer-const */
 import { Link, LinkSv, LINK_DUST, LinkTransaction, LinkTemplate } from "..";
 import { prepare } from "./Prepare.notest";
 import { Sword } from "./Sword.notest";
@@ -67,7 +68,8 @@ describe("link", () => {
 		expect(inst.satoshis).toEqual(0);
 		tx = new LinkTransaction();
 		tx.update(() => inst.destroy());
-		expect(tx.outputs.single().satoshis).toBe(0);
+		expect(tx.outputs.length).toBe(1);
+		expect(tx.outputs[0].satoshis).toBe(0);
 		const txid = await tx.publish();
 		expect(inst.satoshis).toEqual(0);
 		const { json } = await ctx.getRawChainData(txid);

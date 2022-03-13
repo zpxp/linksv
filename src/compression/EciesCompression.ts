@@ -1,5 +1,5 @@
 import { Ecies, KeyPair } from "bsv";
-import { LinkContext } from "chain";
+import { LinkContext } from "..";
 import { ICompression } from "../ICompression";
 import { ZLibCompression } from "./ZLibCompression";
 

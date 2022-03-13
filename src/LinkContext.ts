@@ -152,7 +152,7 @@ export class LinkContext {
 		opts.trackInstances ??= true;
 		const cleanupDefer = !this.loadDeferrer;
 		try {
-			let storeInst = opts.checkOrigin
+			const storeInst = opts.checkOrigin
 				? this.store.getOrigin(location) || this.store.getLocation(location)
 				: this.store.getLocation(location);
 			if (storeInst) {
@@ -576,7 +576,7 @@ class LoadDeferrer {
 
 	async start() {
 		const pending: { template: ILinkClass; proxy: ILink; location: string }[] = [];
-		for (const item of this.pendingLocas) {
+		for (const item of Array.from(this.pendingLocas)) {
 			if (item[1].loaded) {
 				continue;
 			}
@@ -637,7 +637,7 @@ class LoadDeferrer {
 	}
 
 	loadDeferred<T extends ILinkClass, R extends InstanceType<T>>(template: T, location: string): Promise<R> {
-		let storeInst = this.ctx.store.getLocation(location);
+		const storeInst = this.ctx.store.getLocation(location);
 		if (storeInst) {
 			// return existing instance
 			return Promise.resolve(storeInst as R);

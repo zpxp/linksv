@@ -17,7 +17,7 @@ export class ZLibCompression implements ICompression {
 		} else {
 			// is compressed
 			const buf = data[data.length - 1];
-			let ui32 = new Uint8Array(buf, buf.byteOffset, buf.byteLength / Uint8Array.BYTES_PER_ELEMENT);
+			const ui32 = new Uint8Array(buf, buf.byteOffset, buf.byteLength / Uint8Array.BYTES_PER_ELEMENT);
 			return pako.inflateRaw(ui32, { to: "string" });
 		}
 	}

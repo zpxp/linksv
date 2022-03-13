@@ -1,5 +1,5 @@
 import { Tx } from "bsv";
-import { LINK_DUST } from "chain";
+import { LINK_DUST } from "..";
 import { IApiProvider, Utxo } from "../IApiProvider";
 
 /**

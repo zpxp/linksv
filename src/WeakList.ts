@@ -1,10 +1,13 @@
-
 /**
  * this list is weak af
  */
 export class WeakList<T extends object> extends Array<WeakRef<T>> {
 	constructor(list?: T[]) {
-		super(list?.length);
+		if (list?.length) {
+			super(list.length);
+		} else {
+			super();
+		}
 
 		if (list) {
 			for (let index = 0; index < list.length; index++) {
@@ -15,7 +18,7 @@ export class WeakList<T extends object> extends Array<WeakRef<T>> {
 	}
 
 	getInstances(): ReadonlyArray<T> {
-		let rtn = [];
+		const rtn = [];
 		for (let i = this.length - 1; i >= 0; i--) {
 			const item = this[i];
 			const ref = item?.deref();

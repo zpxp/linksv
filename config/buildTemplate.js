@@ -8,7 +8,7 @@ const utils = require("./utils");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
 const CssAutoRequirePlugin = require("./autoRequireCssPlugin");
-const ESLintPlugin = require('eslint-webpack-plugin');
+const ESLintPlugin = require("eslint-webpack-plugin");
 
 const shouldUseSourceMap = process.env.GENERATE_SOURCEMAP !== "false";
 
@@ -47,7 +47,7 @@ function generateWebBuild(entry, outputFolder, lib, overrideOpts) {
 			path: outputFolder,
 			filename: "index.js",
 			library: packageJson.name,
-			libraryTarget: lib ? "commonjs2" : "umd"
+			libraryTarget: "umd"
 		},
 
 		optimization: {
@@ -61,8 +61,7 @@ function generateWebBuild(entry, outputFolder, lib, overrideOpts) {
 			rules: [
 				{ test: /\.js$|\.map$/, loader: "source-map-loader" },
 
-				{ test: /\.tsx?$|\.jsx?$/, include: path.join(__dirname, "../src"), loader: "ts-loader" },
-		
+				{ test: /\.tsx?$|\.jsx?$/, include: path.join(__dirname, "../src"), loader: "ts-loader" }
 			]
 		},
 		plugins: [new ESLintPlugin()],
@@ -91,7 +90,7 @@ function generateNodeBuild(entry, outputFolder, lib, overrideOpts) {
 			path: outputFolder,
 			filename: "index.js",
 			library: packageJson.name,
-			libraryTarget: lib ? "commonjs2" : "umd"
+			libraryTarget: "umd"
 		},
 		resolve: {
 			extensions: [".ts", ".tsx", ".js"],
@@ -104,8 +103,7 @@ function generateNodeBuild(entry, outputFolder, lib, overrideOpts) {
 			rules: [
 				{ test: /\.js$|\.map$/, loader: "source-map-loader" },
 
-				{ test: /\.tsx?$|\.jsx?$/, include: path.join(__dirname, "../src"), loader: "ts-loader" },
-			
+				{ test: /\.tsx?$|\.jsx?$/, include: path.join(__dirname, "../src"), loader: "ts-loader" }
 			]
 		},
 		plugins: [new ESLintPlugin()],
