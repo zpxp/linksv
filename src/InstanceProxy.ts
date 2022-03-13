@@ -1,16 +1,73 @@
-import { ChainObject } from "./ChainObject";
-import { Constants } from "./Constants";
-import { Records, Transaction } from "./Transaction";
+import { Constants, LinkSv } from "./Constants";
+import { ILink, ILinkClass, Link } from "./Link";
+import { LinkRecord, LinkTransaction } from "./LinkTransaction";
+import { deepCopy } from "./Utils";
+import { LinkContext } from "./LinkContext";
 
-const instSymbol = Symbol("__instance");
+let instNum = 0;
 
-export function proxyInstance<T extends object>(inst: T): T {
-	return new Proxy<T>(inst, {
-		apply(target: T, thisArg: any, argArray: any[]): any {
-			const parent = thisArg[instSymbol] as ChainObject;
-			Transaction._record(Records.CALL, parent.location, argArray);
+export function proxyInstance<T extends object | Function>(inst: T, parentProx?: any): T {
+	if (inst && (inst as any)[Constants.IsProxy]) {
+		return inst;
+	}
 
-			return (target as (...a: any[]) => void).apply(parent, argArray);
+	const proxyTarget =
+		typeof inst === "function"
+			? inst
+			: Array.isArray(inst)
+			? Object.assign([], {
+					name: inst.constructor?.name,
+					get inst() {
+						return inst;
+					},
+					id: ++instNum
+			  })
+			: {
+					name: inst.constructor?.name,
+					get inst() {
+						return inst;
+					},
+					id: ++instNum
+			  };
+
+	const prox = new Proxy<T>(proxyTarget as T, {
+		apply(funcProx: T, thisArg: any, argArray: any[]): any {
+			const isExternal = (funcProx as any)[Constants.ExternalFunc];
+			const parent = getUnderlying(thisArg) as Link;
+			if (parent.isDestroyed) {
+				throw new Error("Instance destroyed");
+			}
+			const triggerChainWrite = thisArg === parentProx && !isExternal;
+			const preState = triggerChainWrite ? deepCopy(parent) : null;
+			const result: any = (inst as (...a: any[]) => void).apply(isExternal ? thisArg : parent, argArray);
+			if (
+				result &&
+				typeof result === "object" &&
+				"next" in result &&
+				"throw" in result &&
+				(Symbol.iterator in result || Symbol.asyncIterator in result)
+			) {
+				// is generator function.
+				if (!isExternal) {
+					LinkContext.activeContext.logger?.warn(
+						`Calling a generator function on a template without decorating it with @linkExternal decorator. ${
+							(inst as Function).name
+						} ${parent?.constructor?.name}. It is now possible to write changes to link state without triggering chain write.`
+					);
+				}
+				return result;
+				// return proxyInstance(result, parentProx);
+			}
+			if (triggerChainWrite) {
+				const postState = deepCopy(parent)
+				// record state change
+				const target = (inst as Function).name
+				LinkTransaction._record(LinkRecord.CALL, target, thisArg, preState, postState, null, argArray);
+			}
+			if (result && result[Constants.HasProxy]) {
+				return result[Constants.HasProxy];
+			}
+			return result;
 		},
 		defineProperty(): boolean {
 			throw new Error("Cannot define property outside method");
@@ -18,38 +75,103 @@ export function proxyInstance<T extends object>(inst: T): T {
 		deleteProperty(): boolean {
 			throw new Error("Cannot delete property outside method");
 		},
-		get(target: T, p: string | symbol, receiver: any): any {
+		get(proxTarget: T, p: string | symbol, receiver: any): any {
 			if (p === Constants.IsProxy) {
 				return true;
 			}
-			if (p === instSymbol) {
-				return target;
+			if (p === Constants.UnderlyingInst) {
+				return inst;
 			}
-			const rtn = Reflect.get(target, p, receiver);
-			if (typeof rtn === "function") {
-				return proxyInstance(rtn);
+			if (p === Constants.HasChanges) {
+				return Reflect.get(proxTarget, "hasChanges", receiver) || false;
+			}
+			if (p === Constants.TemplateName) {
+				return (inst.constructor as ILinkClass).templateName;
+			}
+			if (p === "toString") {
+				return () => `[link ${(inst.constructor as ILinkClass).templateName}]`;
+			}
+			let rtn = Reflect.get(inst, p, receiver);
+			// if the prop is on the root template and is a function, proxy it
+			if (typeof rtn === "function" && !nativeFunctions.includes(p as string)) {
+				if (!parentProx) {
+					return proxyInstance(rtn, parentProx || prox);
+				} else {
+					// remove the proxy inst
+					return rtn.bind(inst);
+				}
+			}
+			if (rtn && !rtn[Constants.IsProxy] && rtn[Constants.HasProxy]) {
+				return rtn[Constants.HasProxy];
+			}
+			if (!parentProx && rtn && typeof rtn === "object" && !rtn[Constants.IsProxy]) {
+				return proxyInstance(rtn, parentProx || prox);
 			}
 			return rtn;
 		},
-		getOwnPropertyDescriptor(target: T, p: string | symbol): PropertyDescriptor | undefined {
-			const rtn = Reflect.getOwnPropertyDescriptor(target, p);
-			rtn.configurable = false;
+		getOwnPropertyDescriptor(_: T, p: string | symbol): PropertyDescriptor | undefined {
+			const rtn = Reflect.getOwnPropertyDescriptor(inst, p);
+			rtn.configurable = true;
+			rtn.writable = false;
 			return rtn;
 		},
-		getPrototypeOf(target: T): object | null {
-			return Object.getPrototypeOf(target);
+		ownKeys(_: T): ArrayLike<string | symbol> {
+			return Reflect.ownKeys(inst);
 		},
-		isExtensible(target: T): boolean {
+		getPrototypeOf(_: T): object | null {
+			return Object.getPrototypeOf(inst);
+		},
+		isExtensible(_: T): boolean {
 			return false;
 		},
-		preventExtensions(target: T): boolean {
+		has(_: T, p: string | symbol): boolean {
+			return Reflect.has(inst, p);
+		},
+		preventExtensions(_: T): boolean {
 			return true;
 		},
-		set(): boolean {
-			throw new Error("Cannot set property outside method");
+		set(proxTarget: T, p: string | symbol, value: any, receiver: any): boolean {
+			if (p === Constants.SetState) {
+				inst = value;
+				(inst as any)[Constants.HasProxy] = prox;
+				if (typeof value !== "function") {
+					Reflect.set(proxTarget, "name", inst.constructor?.name);
+				}
+				return true;
+			}
+			if (p === Constants.HasChanges) {
+				return Reflect.set(proxTarget, "hasChanges", value);
+			}
+
+			throw new Error(`Cannot set property outside method ${p as string} ${proxTarget}`);
 		},
 		setPrototypeOf(): boolean {
 			throw new Error("Cannot change prototype");
 		}
 	});
+
+	if (!parentProx) {
+		(inst as any)[Constants.HasProxy] = prox;
+	}
+
+	return prox;
+}
+
+export function getUnderlying<T extends Link | ILinkClass>(prox: T): T {
+	return (prox as any)[Constants.UnderlyingInst] || prox;
+}
+
+const nativeFunctions = ["sync", "reset", "toJSON"];
+
+/**
+ * Decorate a function within a link to prevent that function for triggering a chain write.
+ * This function makes the ambient `this` variable within the decorated function a proxy
+ * @param target
+ * @param propertyKey
+ * @param descriptor
+ * @returns
+ */
+export function linkExternal(target: Object, propertyKey: string, descriptor: TypedPropertyDescriptor<any>) {
+	(descriptor.value as any)[Constants.ExternalFunc] = true;
+	return descriptor;
 }
