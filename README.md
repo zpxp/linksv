@@ -57,7 +57,7 @@ module.exports = {
 
 ``` ts
 import { PrivKey, Address, PubKey, Constants } from "bsv";
-import { LinkTemplate, Link, LinkTransaction } from "linksv";
+import { LinkTemplate, Link, LinkTransaction, LinkContext, BackendLinkProvider } from "linksv";
 
 // uncomment to use testnet
 // Constants.Default = Constants.Testnet;
@@ -88,6 +88,10 @@ export class Sword extends Link {
 		this.name = name;
 	}
 }
+
+// if your environment doesn't allow class decorators, 
+// you can use LinkTemplate like this:
+// Sword = LinkTemplate("Sword")(Sword);
 
 const tx = new LinkTransaction()
 const swordInstance = tx.update(() => new Sword("cool sword"));
