@@ -6,8 +6,8 @@ Each class instance that is written to chain is called a link and the class defi
 
 ## Features
 
-- Fast. A single link with any number of changes can be loaded in the time it takes to make one network call
 - Full control over your data
+- Fast - A single link with any number of changes can be loaded in the time it takes to make one network call
 - BSV 2 library
 - First class data transaction management
 - Link templates enforce data contracts
