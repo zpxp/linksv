@@ -109,9 +109,11 @@ To give a template an owner, requiring that owner to sign whenever a new instanc
 
 ## Backend
 
-You will need to run a provider backend to store link locations. Clone this repo onto your server and run:
+You will need to run a provider backend to store link locations. Clone this repo onto your server and start it with `docker-compose`:
 
 ``` bash
+git clone --recurse-submodules https://github.com/zpxp/linksv.git
+cd linksv
 mkdir .data
 sudo chown -R 5678 .data
 docker-compose up -d --build --force-recreate
