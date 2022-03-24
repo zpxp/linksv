@@ -1,33 +1,33 @@
-
 /**
  * this list is weak af
  */
-export class WeakList<T extends object> extends Array<WeakRef<T>> {
+export class WeakList<T extends object> {
+	private list: Array<WeakRef<T>>;
 	constructor(list?: T[]) {
-		if (list?.length) {
-			super(list.length);
-		} else {
-			super();
-		}
+		this.list = [];
 
 		if (list) {
 			for (let index = 0; index < list.length; index++) {
 				const element = list[index];
-				this.push(new WeakRef(element));
+				this.list.push(new WeakRef(element));
 			}
 		}
 	}
 
+	push(item: T) {
+		return this.list.push(new WeakRef(item));
+	}
+
 	getInstances(): ReadonlyArray<T> {
 		const rtn = [];
-		for (let i = this.length - 1; i >= 0; i--) {
-			const item = this[i];
+		for (let i = this.list.length - 1; i >= 0; i--) {
+			const item = this.list[i];
 			const ref = item?.deref();
 			if (ref) {
 				rtn.push(ref);
 			} else {
 				// remove it
-				this.splice(i, 1);
+				this.list.splice(i, 1);
 			}
 		}
 		return rtn;
