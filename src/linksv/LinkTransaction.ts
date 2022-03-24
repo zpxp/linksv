@@ -6,7 +6,6 @@ import { Utxo } from "./IApiProvider";
 import { deepCopy, LinkRef } from "./Utils";
 import * as bsv from "bsv";
 import { TxOut, Bn, PubKey, OpCode, Address } from "bsv";
-import "./Fixes";
 import { ProviderData } from "./ILinkProvider";
 
 export class LinkTransaction {

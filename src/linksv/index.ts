@@ -1,5 +1,6 @@
 // everything in this file is public outside the lib
 
+import "./Fixes";
 export { linkExternal } from "./InstanceProxy";
 export { LinkContext } from "./LinkContext";
 export { LinkTransaction, LinkRecord } from "./LinkTransaction";
