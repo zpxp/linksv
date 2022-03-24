@@ -71,8 +71,13 @@ public class LinkService
 		var orig = await db.Locations.Where(x => x.Origin == origin).ToListAsync();
 		if (orig.Count > 0)
 		{
-			// already exists
 			var exist = orig.FirstOrDefault(x => x.Location == location);
+			if (exist != null)
+			{
+				// already exists do nothing
+				return;
+			}
+			exist = orig.FirstOrDefault(x => x.Nonce == nonce && x.Location != location);
 			if (exist != null)
 			{
 				logger.LogWarning($"Nonce already exists for origin {origin} but given location differs. Incoming location {location}. Existing location {exist.Location}");
