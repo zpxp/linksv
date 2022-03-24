@@ -1,0 +1,3 @@
+[submodule "submodules/KzBsv"]
+	path = submodules/KzBsv
+	url = https://github.com/zpxp/KzBsv.git
