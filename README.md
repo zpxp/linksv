@@ -43,6 +43,9 @@ module.exports = {
 import { PrivKey, Address, PubKey } from "bsv";
 import { LinkTemplate, Link, LinkTransaction } from "linksv";
 
+// uncomment to use testnet
+// bsv.Constants.Default = bsv.Constants.Testnet;
+
 const pursePk = PrivKey.fromRandom();
 const ownerPk = PrivKey.fromRandom();
 const ownerAddr = Address.fromPubKey(PubKey.fromPrivKey(ownerPk));
@@ -105,4 +108,4 @@ To see what endpoints are provided by the backend, run in debug mode and visit t
 Link SV tracks changes to link instances and serializes those changes to chain on `tx.publish()`. Data is compressed so large amounts of data can be written while maintaining cheap transaction fees. New link locations are automatically recorded in the backend provider so blockchain indexing is not required.
 
 ## Note
-node js users will need to replace the `LinkContext.utxoStore` with a node compatible store. It currently defaults to `IndexedDbUtxoStore` which only works in browser contexts. You can run an in memory only store by using `MockUtxoStore` instead.
+Node js users will need to replace the `LinkContext.utxoStore` with a node compatible store. It currently defaults to `IndexedDbUtxoStore` which only works in browser contexts. You can run an in memory only store by using `MockUtxoStore` instead.
