@@ -13,48 +13,81 @@
 			],
 			"type": "pwa-node"
 		},
-		 {
-			  "type": "chrome",
-			  "request": "attach",
-			  "name": "Attach to Chrome",
-			  "port": 9222,
-			  "url": "http://localhost:3000*",
-			  "webRoot": "${workspaceFolder}",
-		 },
-		 {
-			  "type": "chrome",
-			  "request": "launch",
-			  "name": "Launch",
-			  "url": "http://localhost:3000",
-			  "webRoot": "${workspaceFolder}"
-		 },
-		 {
+		{
+			"type": "chrome",
+			"request": "attach",
+			"name": "Attach to Chrome",
+			"port": 9222,
+			"url": "http://localhost:3000*",
+			"webRoot": "${workspaceFolder}"
+		},
+		{
+			"type": "chrome",
+			"request": "launch",
+			"name": "Launch",
+			"url": "http://localhost:3000",
+			"webRoot": "${workspaceFolder}"
+		},
+		{
 			"type": "node",
 			"request": "launch",
 			"name": "Debug webpack",
 			"program": "${workspaceFolder}/scripts/build.js",
 			"console": "integratedTerminal",
 			"internalConsoleOptions": "neverOpen",
-			"disableOptimisticBPs": true,
-		 },
-		 
-		 {
+			"disableOptimisticBPs": true
+		},
+		{
 			"type": "node",
 			"request": "launch",
 			"name": "Jest Current File",
 			"program": "${workspaceFolder}/node_modules/.bin/jest",
 			"args": [
-			  "${fileBasenameNoExtension}",
-			  "-c",
-			  "${workspaceFolder}/jest.config.js",
-			  "--runInBand"
+				"${fileBasenameNoExtension}",
+				"-c",
+				"${workspaceFolder}/jest.config.js",
+				"--runInBand"
 			],
 			"console": "integratedTerminal",
 			"internalConsoleOptions": "neverOpen",
 			"disableOptimisticBPs": true,
 			"windows": {
-			  "program": "${workspaceFolder}/node_modules/jest/bin/jest",
+				"program": "${workspaceFolder}/node_modules/jest/bin/jest"
 			}
-		 }
+		},
+		{
+			"name": ".NET Core Launch (web)",
+			"type": "coreclr",
+			"request": "launch",
+			"preLaunchTask": "build",
+			"program": "${workspaceFolder}/src/provider/bin/Debug/net6.0/provider.dll",
+			"args": [],
+			"cwd": "${workspaceFolder}/src/provider",
+			"stopAtEntry": false,
+			"serverReadyAction": {
+				"action": "openExternally",
+				"pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+			},
+			"env": {
+				"ASPNETCORE_ENVIRONMENT": "Development"
+			},
+			"sourceFileMap": {
+				"/Views": "${workspaceFolder}/Views"
+			}
+		},
+		{
+			"name": ".NET Core Attach",
+			"type": "coreclr",
+			"request": "attach"
+		},
+		{
+			"name": "Docker .NET Core Launch",
+			"type": "docker",
+			"request": "launch",
+			"preLaunchTask": "docker-run: debug",
+			"netCore": {
+				"appProject": "${workspaceFolder}/src/provider/provider.csproj"
+			}
+		}
 	]
 }

@@ -45,7 +45,7 @@ if (settings.Network == "test")
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// if (app.Environment.IsDevelopment())
 {
 	app.UseSwagger();
 	app.UseSwaggerUI();
@@ -54,5 +54,12 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+
+using (var serviceScope = app.Services.GetService<IServiceScopeFactory>().CreateScope())
+{
+	// run db migration
+	var context = serviceScope.ServiceProvider.GetRequiredService<LinkDatabase>();
+	context.Database.Migrate();
+}
 
 app.Run();

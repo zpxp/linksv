@@ -10,8 +10,8 @@ using provider.Domain;
 namespace provider.Migrations
 {
     [DbContext(typeof(LinkDatabase))]
-    [Migration("20220324014519_LinkName")]
-    partial class LinkName
+    [Migration("20220324022241_initial")]
+    partial class initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {

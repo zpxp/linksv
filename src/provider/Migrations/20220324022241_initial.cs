@@ -4,21 +4,10 @@
 
 namespace provider.Migrations
 {
-    public partial class LinkOwners : Migration
+    public partial class initial : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "LinkOwner",
-                columns: table => new
-                {
-                    OwnerAddress = table.Column<string>(type: "TEXT", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_LinkOwner", x => x.OwnerAddress);
-                });
-
             migrationBuilder.CreateTable(
                 name: "Origins",
                 columns: table => new
@@ -31,11 +20,23 @@ namespace provider.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Owners",
+                columns: table => new
+                {
+                    OwnerAddress = table.Column<string>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Owners", x => x.OwnerAddress);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Locations",
                 columns: table => new
                 {
                     Location = table.Column<string>(type: "TEXT", nullable: false),
                     Origin = table.Column<string>(type: "TEXT", nullable: false),
+                    LinkName = table.Column<string>(type: "TEXT", nullable: false),
                     Nonce = table.Column<uint>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
@@ -60,16 +61,16 @@ namespace provider.Migrations
                 {
                     table.PrimaryKey("PK_LinkLocationLinkOwner", x => new { x.OwnedLinksLocation, x.OwnersOwnerAddress });
                     table.ForeignKey(
-                        name: "FK_LinkLocationLinkOwner_LinkOwner_OwnersOwnerAddress",
-                        column: x => x.OwnersOwnerAddress,
-                        principalTable: "LinkOwner",
-                        principalColumn: "OwnerAddress",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
                         name: "FK_LinkLocationLinkOwner_Locations_OwnedLinksLocation",
                         column: x => x.OwnedLinksLocation,
                         principalTable: "Locations",
                         principalColumn: "Location",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_LinkLocationLinkOwner_Owners_OwnersOwnerAddress",
+                        column: x => x.OwnersOwnerAddress,
+                        principalTable: "Owners",
+                        principalColumn: "OwnerAddress",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -79,14 +80,9 @@ namespace provider.Migrations
                 column: "OwnersOwnerAddress");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Locations_Nonce",
+                name: "IX_Locations_Origin_Nonce",
                 table: "Locations",
-                column: "Nonce");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Locations_Origin",
-                table: "Locations",
-                column: "Origin");
+                columns: new[] { "Origin", "Nonce" });
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
@@ -95,10 +91,10 @@ namespace provider.Migrations
                 name: "LinkLocationLinkOwner");
 
             migrationBuilder.DropTable(
-                name: "LinkOwner");
+                name: "Locations");
 
             migrationBuilder.DropTable(
-                name: "Locations");
+                name: "Owners");
 
             migrationBuilder.DropTable(
                 name: "Origins");
