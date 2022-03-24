@@ -13,6 +13,7 @@ const ownerAddr = Address.fromPubKey(PubKey.fromPrivKey(ownerPk));
 const ctx = new LinkContext({
 	purse: pursePk.toString(),
 	owner: ownerPk.toString(),
+	logger: console,
 	provider: new BackendLinkProvider("https://<your_provider_host_url>[:port]"),
 	app: "appName",
 });
