@@ -35,7 +35,9 @@ public class LinkDatabase : DbContext
 			e.HasKey(x => x.Location);
 			e.Property(x => x.Location).IsRequired();
 			e.Property(x => x.Nonce).IsRequired();
-			e.HasIndex(x => new { x.Nonce });
+			e.Property(x => x.LinkName).IsRequired();
+			e.Property(x => x.Origin).IsRequired();
+			e.HasIndex(x => new { x.Origin, x.Nonce });
 		});
 
 		modelBuilder.Entity<LinkOwner>(e =>

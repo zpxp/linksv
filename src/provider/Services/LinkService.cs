@@ -84,7 +84,7 @@ public class LinkService
 		{
 			db.Origins.Add(new LinkOrigin { Origin = origin });
 		}
-		var link = new LinkLocation { Origin = origin, Location = location, Nonce = nonce, Owners = new List<LinkOwner>() };
+		var link = new LinkLocation { LinkName = linkName, Origin = origin, Location = location, Nonce = nonce, Owners = new List<LinkOwner>() };
 		foreach (var owner in owners)
 		{
 			var ownerRow = await db.Owners.FindAsync(owner);
