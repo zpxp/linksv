@@ -28,7 +28,7 @@ Or
 yarn add linksv axios axios-rate-limit axios-retry bsv pako
 ```
 
-If using in the browser also add `dexie`, `crypto-js` and `buffer` npm packages and modify your webpack config like so:
+If using in the browser also add `crypto-js` and `buffer` npm packages and modify your webpack config like so:
 
 ```js
 module.exports = {

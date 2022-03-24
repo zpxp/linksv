@@ -9,7 +9,9 @@ const builds = [
 	// create a dist build
 	generate.generateWebBuild(paths.appIndexJs, paths.appBuildDist, false),
 	// create a es6 module build
-	generate.generateWebBuild(paths.appIndexJs, paths.appBuildLib, true)	
+	generate.generateWebBuild(paths.appIndexJs, paths.appBuildLib, true)	,
+	// generate nodejs build
+	generate.generateNodeBuild(paths.appIndexJs, paths.appBuildLib, true)	
 ]
 
 module.exports = builds;

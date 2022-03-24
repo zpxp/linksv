@@ -88,7 +88,7 @@ function generateNodeBuild(entry, outputFolder, lib, overrideOpts) {
 		output: {
 			// The build folder.
 			path: outputFolder,
-			filename: "index.js",
+			filename: "node.index.js",
 			library: packageJson.name,
 			libraryTarget: "umd"
 		},

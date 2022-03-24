@@ -12,7 +12,7 @@ export { ZLibCompression } from "./compression/ZLibCompression";
 export { EciesCompression } from "./compression/EciesCompression";
 export { NoCompression } from "./compression/NoCompression";
 export { Group } from "./Group";
-export type { IApiProvider } from "./IApiProvider";
+export type { IApiProvider, Utxo } from "./IApiProvider";
 export type { ILinkProvider, ProviderData } from "./ILinkProvider";
 export type { IUtxoStore } from "./IUtxoStore";
 export { WhatsOnChainApi } from "./apis/WhatsOnChain";
@@ -23,6 +23,7 @@ export { BackendLinkProvider } from "./providers/BackendLinkProvider";
 export { MockProvider } from "./providers/MockProvider";
 export { LinkSv } from "./Constants";
 export { deepCopy } from "./Utils";
+
 
 import { Address, Bn, KeyPair, Script, TxBuilder, Tx, Bw, Hash, OpCode } from "bsv";
 
