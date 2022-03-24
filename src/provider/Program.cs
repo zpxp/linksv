@@ -45,7 +45,7 @@ if (settings.Network == "test")
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-// if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || settings.ShowSwaggerDoc)
 {
 	app.UseSwagger();
 	app.UseSwaggerUI();
