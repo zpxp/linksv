@@ -5,6 +5,7 @@
     "singleQuote": false,  
     "trailingComma": "none",
     "jsxBracketSameLine": false,
+	 "arrowParens": "avoid",
     "parser": "typescript",
     "rcVerbose": true
 }

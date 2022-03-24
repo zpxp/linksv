@@ -2,6 +2,7 @@ import { IApiProvider, Utxo } from "../IApiProvider";
 import axios from "axios";
 import rateLimit from "axios-rate-limit";
 import * as bsv from "bsv";
+import { chunk } from "../Utils";
 
 const http = rateLimit(axios.create(), { maxRPS: 3 });
 
@@ -63,14 +64,3 @@ export class WhatsOnChainApi implements IApiProvider {
 	}
 }
 
-function chunk<T>(arr: T[], chunk: number): T[][] {
-	let i: number,
-		j: number,
-		temporary: T[],
-		rtn = [];
-	for (i = 0, j = arr.length; i < j; i += chunk) {
-		temporary = arr.slice(i, i + chunk);
-		rtn.push(temporary);
-	}
-	return rtn;
-}

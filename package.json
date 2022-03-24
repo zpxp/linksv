@@ -17,7 +17,7 @@
 		"analyze": "source-map-explorer dist/js/main.*",
 		"build": "node scripts/build.js",
 		"prepare": "install-peers -f",
-		"test": "node scripts/test.js --passWithNoTests --forceExit --runInBand",
+		"test": "node scripts/test.js --passWithNoTests --forceExit",
 		"new-version-patch": " yarn version --new-version patch",
 		"new-version": " yarn version"
 	},

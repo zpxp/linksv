@@ -34,7 +34,7 @@ export class IndexedDbUtxoStore extends Dexie implements IUtxoStore {
 
 	async getUnspent(address: string, value: number): Promise<Utxo[]> {
 		const rows = await this.utxos.where({ address }).toArray();
-		let rtns: Utxo[] = [];
+		const rtns: Utxo[] = [];
 
 		for (const row of rows) {
 			rtns.push({ tx_hash: row.txid, tx_pos: row.idx, value: row.value });

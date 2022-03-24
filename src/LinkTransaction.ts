@@ -48,6 +48,10 @@ export class LinkTransaction {
 
 	private actions: RecordAction[] = [];
 
+	get isLocked() {
+		return this.lockTx;
+	}
+
 	/**
 	 * Tx id for this transaction. Populated after a successful `publish()`
 	 */
@@ -167,14 +171,14 @@ export class LinkTransaction {
 		}
 
 		if (link instanceof Link) {
-			const thisActions = this.actions.filter((x) => x.linkProxy === link);
+			const thisActions = this.actions.filter(x => x.linkProxy === link);
 			if (thisActions.length && thisActions[0].type !== LinkRecord.NEW) {
 				// revert its state
 				(link as any)[Constants.SetState] = thisActions[0].preActionSnapshot;
 			}
 		}
 		// clear those actions from the tx
-		this.actions = this.actions.filter((x) => x.linkProxy !== link);
+		this.actions = this.actions.filter(x => x.linkProxy !== link);
 	}
 
 	/**
@@ -188,10 +192,12 @@ export class LinkTransaction {
 			}
 			tx.actions.push(...this.actions);
 			for (const action of this.actions) {
-				(action.linkProxy as any)[Constants.SetState] = Object.setPrototypeOf(
-					action.postActionSnapshot,
-					Object.getPrototypeOf(action.linkProxy)
-				);
+				if (action.postActionSnapshot) {
+					(action.linkProxy as any)[Constants.SetState] = Object.setPrototypeOf(
+						action.postActionSnapshot,
+						Object.getPrototypeOf(action.linkProxy)
+					);
+				}
 			}
 			this.actions = [];
 		}
@@ -220,6 +226,39 @@ export class LinkTransaction {
 	}
 
 	/**
+	 * Sync locations and nonces of all links in this transaction but keep their current state and changes.
+	 * Arcane use only for if you need to force spend the latest link utxo
+	 */
+	async syncLocations() {
+		if (this.lockTx) {
+			throw new Error("Transaction locked");
+		}
+		const uniqueLinks = new Map<Link, RecordAction[]>();
+		for (const action of this.actions) {
+			if (action.linkProxy instanceof Link) {
+				uniqueLinks.set(
+					action.linkProxy,
+					this.actions.filter(x => x.linkProxy === action.linkProxy)
+				);
+			}
+		}
+		const links = Array.from(uniqueLinks);
+		const locations = await this.ctx.provider.bulkGetLatestLocationForOrigin(links.map(x => x[0].origin));
+		for (const [origin, latest] of Object.entries(locations)) {
+			const [link, actions] = links.find(x => x[0].origin === origin);
+			if (link) {
+				const underlying = getUnderlying(link);
+				underlying.location = latest.location;
+				underlying.nonce = latest.nonce;
+
+				for (const action of actions) {
+					action.inputLocation = latest.location;
+				}
+			}
+		}
+	}
+
+	/**
 	 * Returns true if all inputs for this transaction are signed
 	 */
 	isFullySigned() {
@@ -239,7 +278,7 @@ export class LinkTransaction {
 	 * @param link
 	 */
 	exportLink(link: Link) {
-		const changes = this.actions.find((x) => x.linkProxy === link);
+		const changes = this.actions.find(x => x.linkProxy === link);
 		if (!changes) {
 			return null;
 		}
@@ -255,11 +294,11 @@ export class LinkTransaction {
 			// this isnt required for import
 			postActionSnapshot: null,
 			// only record the original pre state for this link if it has more than one update. save json size
-			preActionSnapshot: this.actions.findIndex((x) => x.linkProxy === x.linkProxy) === i ? x.preActionSnapshot : undefined
+			preActionSnapshot: this.actions.findIndex(x => x.linkProxy === x.linkProxy) === i ? x.preActionSnapshot : undefined
 		}));
 		// add this so the deserializer client auto detects state changes in these links and updates to this current state
 		rtn.currentLinkStates = Object.fromEntries(
-			this.actions.map((x) => {
+			this.actions.map(x => {
 				const val = getUnderlying(x.linkProxy);
 				// serialize it as json with template name
 				return [
@@ -286,7 +325,7 @@ export class LinkTransaction {
 			}
 
 			// clear those actions from the tx
-			this.actions = this.actions.filter((x) => x.linkProxy !== link);
+			this.actions = this.actions.filter(x => x.linkProxy !== link);
 		} else {
 			this.txb = new bsv.TxBuilder();
 			this.lockTx = false;
@@ -397,11 +436,11 @@ export class LinkTransaction {
 			checkUntrackedLink(action, this.ctx);
 			uniqueEndLinks.set(
 				action.linkProxy,
-				this.actions.filter((x) => x.linkProxy === action.linkProxy)
+				this.actions.filter(x => x.linkProxy === action.linkProxy)
 			);
 			uniqueStartLinks.set(
-				this.actions.find((x) => x.linkProxy === action.linkProxy).preActionSnapshot || action.linkProxy,
-				this.actions.filter((x) => x.linkProxy === action.linkProxy)
+				this.actions.find(x => x.linkProxy === action.linkProxy).preActionSnapshot || action.linkProxy,
+				this.actions.filter(x => x.linkProxy === action.linkProxy)
 			);
 		}
 
@@ -409,8 +448,8 @@ export class LinkTransaction {
 		// write each action utxos inputs
 		for (const [link, actions] of Array.from(uniqueStartLinks)) {
 			if (!link?.location) {
-				const hasNew = actions.some((x) => x.type === LinkRecord.NEW);
-				const hasDeploy = actions.some((x) => x.type === LinkRecord.DEPLOY);
+				const hasNew = actions.some(x => x.type === LinkRecord.NEW);
+				const hasDeploy = actions.some(x => x.type === LinkRecord.DEPLOY);
 				if (!hasNew && !hasDeploy) {
 					throw new Error(
 						`Link does not have a location and it wasn't created in this transaction ${link.owner} ${actions[0].target} ${link}`
@@ -425,7 +464,7 @@ export class LinkTransaction {
 						}
 						// get a unspent utxo from the owner address
 						const ownerUtxos = await this.ctx.api.getUnspentUtxos(template.owner);
-						const utxo = ownerUtxos.find((x) => x.value === template.satoshis || template.location.startsWith(x.tx_hash));
+						const utxo = ownerUtxos.find(x => x.value === template.satoshis || template.location.startsWith(x.tx_hash));
 						if (!utxo) {
 							throw new Error(`Cannot find utxo for template ${link[LinkSv.TemplateName]} owner ${template.owner}`);
 						}
@@ -463,7 +502,7 @@ export class LinkTransaction {
 					);
 				}
 				pendingOutputs.push({ toAddrStr: link.owner, satoshis: link.satoshis });
-				for (const action of this.actions.filter((x) => x.linkProxy === link)) {
+				for (const action of this.actions.filter(x => x.linkProxy === link)) {
 					action.outputIndex = txOutputIndex;
 				}
 				txOutputIndex++;
@@ -515,8 +554,8 @@ export class LinkTransaction {
 			this.ctx.logger?.log(
 				"Inputs " +
 					this.actions
-						.map((x) => x.inputLocation)
-						.filter((x) => !!x)
+						.map(x => x.inputLocation)
+						.filter(x => !!x)
 						.join(" ")
 			);
 			const raw = this.txb.tx.toHex();
@@ -550,7 +589,7 @@ export class LinkTransaction {
 
 			// save change utxo
 			const changeUtxo = this.txb.tx.txOuts
-				.filter((x) => {
+				.filter(x => {
 					if (isPublicKeyHashOut(x.script)) {
 						const address = bsv.Address.fromPubKeyHashBuf(x.script.chunks[2].buf);
 						if (address instanceof bsv.Address) {
@@ -559,7 +598,7 @@ export class LinkTransaction {
 					}
 					return false;
 				})
-				.map<Utxo>((x) => ({ tx_hash: txid, tx_pos: this.txb.tx.txOuts.indexOf(x), value: x.valueBn.toNumber() }));
+				.map<Utxo>(x => ({ tx_hash: txid, tx_pos: this.txb.tx.txOuts.indexOf(x), value: x.valueBn.toNumber() }));
 
 			if (changeUtxo.length) {
 				await this.ctx.utxoStore.setUnspent(this.ctx.purse.addressStr, changeUtxo);
@@ -629,10 +668,10 @@ export class LinkTransaction {
 			i:
 				startLocations.length === uniqueEnds.length
 					? undefined
-					: uniqueEnds.map((x) => {
+					: uniqueEnds.map(x => {
 							return startLocations.indexOf(x.location);
 					  }),
-			o: uniqueEnds.map((x) => {
+			o: uniqueEnds.map(x => {
 				const inst = getUnderlying(x);
 				// increment nonce for the script but dont change the instance just yet
 				return Object.setPrototypeOf({ ...inst, nonce: inst.nonce + 1 }, Object.getPrototypeOf(inst));
@@ -644,28 +683,25 @@ export class LinkTransaction {
 		}
 
 		const json = JSON.stringify(record, (key, val) => {
-			if (val && val[LinkSv.IsProxy]) {
-				if (val instanceof Link) {
-					if (val.isDestroyed) {
-						return undefined;
-					}
-					// object in this tx
-					const action = this.actions.find((x) => x.linkProxy === val);
-					if (action) {
-						if (!action.outputIndex) {
-							throw new Error(`No output index for ${val[LinkSv.TemplateName]} ${val}`);
-						}
-						const rtn: LinkRef = { $: "_" + action.outputIndex, t: val[LinkSv.TemplateName] };
-						return rtn;
-					} else if (val.location) {
-						const rtn: LinkRef = { $: val.location, t: val[LinkSv.TemplateName] };
-						return rtn;
-					}
-					throw new Error(
-						`Cannot serialize link, no location found, and not part of current transaction. ${val.origin} ${val.location} ${val.owner}`
-					);
+			if (val instanceof Link && val[LinkSv.IsProxy]) {
+				if (val.isDestroyed) {
+					return undefined;
 				}
-				val = { ...val };
+				// object in this tx
+				const action = this.actions.find(x => x.linkProxy === val);
+				if (action) {
+					if (!action.outputIndex) {
+						throw new Error(`No output index for ${val[LinkSv.TemplateName]} ${val}`);
+					}
+					const rtn: LinkRef = { $: "_" + action.outputIndex, t: val[LinkSv.TemplateName] };
+					return rtn;
+				} else if (val.location) {
+					const rtn: LinkRef = { $: val.location, t: val[LinkSv.TemplateName] };
+					return rtn;
+				}
+				throw new Error(
+					`Cannot serialize link, no location found, and not part of current transaction. ${val.origin} ${val.location} ${val.owner}`
+				);
 			}
 			if (val && val.constructor && val.constructor[Constants.ChainClass]) {
 				val = Object.setPrototypeOf({ ...val, ["~"]: val.constructor[Constants.ChainClass] }, Object.getPrototypeOf(val));

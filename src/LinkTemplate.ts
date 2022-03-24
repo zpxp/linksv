@@ -3,7 +3,6 @@ import { Constants } from "./Constants";
 import { proxyInstance } from "./InstanceProxy";
 import { ILinkClass } from "./Link";
 import { LinkRecord } from "./LinkTransaction";
-import { deepCopy } from "./Utils";
 
 export function LinkTemplate(uniqueName: string) {
 	return function Wrap<T extends object>(c: T): T {

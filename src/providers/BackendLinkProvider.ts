@@ -1,6 +1,7 @@
 import { ILinkProvider } from "../ILinkProvider";
 import axios from "axios";
 import axiosRetry from "axios-retry";
+import { chunk } from "../Utils";
 
 axiosRetry(axios, {
 	retries: 10, // number of retries
@@ -62,14 +63,3 @@ export class BackendLinkProvider implements ILinkProvider {
 
 type TT = { [origin: string]: { location: string; nonce: number } };
 
-function chunk<T>(arr: T[], chunk: number): T[][] {
-	let i: number,
-		j: number,
-		temporary: T[],
-		rtn = [];
-	for (i = 0, j = arr.length; i < j; i += chunk) {
-		temporary = arr.slice(i, i + chunk);
-		rtn.push(temporary);
-	}
-	return rtn;
-}

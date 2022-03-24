@@ -6,7 +6,9 @@ import { LinkContext } from "./LinkContext";
 
 let instNum = 0;
 
-export function proxyInstance<T extends object | Function>(inst: T, parentProx?: any): T {
+type Func = (...a: any[]) => any;
+
+export function proxyInstance<T extends object | Func>(inst: T, parentProx?: any): T {
 	if (inst && (inst as any)[Constants.IsProxy]) {
 		return inst;
 	}
@@ -51,7 +53,7 @@ export function proxyInstance<T extends object | Function>(inst: T, parentProx?:
 				if (!isExternal) {
 					LinkContext.activeContext.logger?.warn(
 						`Calling a generator function on a template without decorating it with @linkExternal decorator. ${
-							(inst as Function).name
+							(inst as Func).name
 						} ${parent?.constructor?.name}. It is now possible to write changes to link state without triggering chain write.`
 					);
 				}
@@ -59,9 +61,9 @@ export function proxyInstance<T extends object | Function>(inst: T, parentProx?:
 				// return proxyInstance(result, parentProx);
 			}
 			if (triggerChainWrite) {
-				const postState = deepCopy(parent)
+				const postState = deepCopy(parent);
 				// record state change
-				const target = (inst as Function).name
+				const target = (inst as Func).name;
 				LinkTransaction._record(LinkRecord.CALL, target, thisArg, preState, postState, null, argArray);
 			}
 			if (result && result[Constants.HasProxy]) {
@@ -91,7 +93,7 @@ export function proxyInstance<T extends object | Function>(inst: T, parentProx?:
 			if (p === "toString") {
 				return () => `[link ${(inst.constructor as ILinkClass).templateName}]`;
 			}
-			let rtn = Reflect.get(inst, p, receiver);
+			const rtn = Reflect.get(inst, p, receiver);
 			// if the prop is on the root template and is a function, proxy it
 			if (typeof rtn === "function" && !nativeFunctions.includes(p as string)) {
 				if (!parentProx) {
@@ -133,9 +135,11 @@ export function proxyInstance<T extends object | Function>(inst: T, parentProx?:
 		set(proxTarget: T, p: string | symbol, value: any, receiver: any): boolean {
 			if (p === Constants.SetState) {
 				inst = value;
-				(inst as any)[Constants.HasProxy] = prox;
-				if (typeof value !== "function") {
-					Reflect.set(proxTarget, "name", inst.constructor?.name);
+				if (inst) {
+					(inst as any)[Constants.HasProxy] = prox;
+					if (typeof value !== "function") {
+						Reflect.set(proxTarget, "name", inst.constructor?.name);
+					}
 				}
 				return true;
 			}
@@ -161,7 +165,7 @@ export function getUnderlying<T extends Link | ILinkClass>(prox: T): T {
 	return (prox as any)[Constants.UnderlyingInst] || prox;
 }
 
-const nativeFunctions = ["sync", "reset", "toJSON"];
+const nativeFunctions = ["sync", "reset", "toJSON", "constructor"];
 
 /**
  * Decorate a function within a link to prevent that function for triggering a chain write.
@@ -171,7 +175,7 @@ const nativeFunctions = ["sync", "reset", "toJSON"];
  * @param descriptor
  * @returns
  */
-export function linkExternal(target: Object, propertyKey: string, descriptor: TypedPropertyDescriptor<any>) {
+export function linkExternal(target: object, propertyKey: string, descriptor: TypedPropertyDescriptor<any>) {
 	(descriptor.value as any)[Constants.ExternalFunc] = true;
 	return descriptor;
 }

@@ -256,24 +256,24 @@ export class LinkContext {
 	 */
 	serialize(item: Link | Link[] | any) {
 		return JSON.stringify(item, (key, val) => {
-			if (val && val[LinkSv.IsProxy]) {
-				if (val instanceof Link) {
-					if (val.location) {
-						const rtn: LinkRef = { $: val.location, t: val[LinkSv.TemplateName] };
-						return rtn;
-					} else if (val instanceof Link) {
-						if (!this.allowSerializeNewLinks) {
-							throw new Error(
-								`Cannot serialize link without location. Publish transaction before trying to serialize or enable allowSerializeNewLinks. ${
-									val.origin
-								} ${val.location} ${val.owner} ${val[LinkSv.TemplateName]}`
-							);
-						}
-						// serialize it with template name
-						val = Object.setPrototypeOf({ ...val, ["t~"]: val[LinkSv.TemplateName] }, Object.getPrototypeOf(val));
+			if (val instanceof Link) {
+				if (val[LinkSv.IsProxy] && val.location) {
+					const rtn: LinkRef = { $: val.location, t: val[LinkSv.TemplateName] };
+					return rtn;
+				} else {
+					if (!val.location && !this.allowSerializeNewLinks) {
+						throw new Error(
+							`Cannot serialize link without location. Publish transaction before trying to serialize or enable allowSerializeNewLinks. ${
+								val.origin
+							} ${val.location} ${val.owner} ${(val.constructor as ILinkClass).templateName}`
+						);
 					}
+					// serialize it with template name
+					val = Object.setPrototypeOf(
+						{ ...val, ["t~"]: (val.constructor as ILinkClass).templateName },
+						Object.getPrototypeOf(val)
+					);
 				}
-				val = { ...val };
 			}
 			if (val && val.constructor && val.constructor[Constants.ChainClass]) {
 				val = Object.setPrototypeOf({ ...val, ["~"]: val.constructor[Constants.ChainClass] }, Object.getPrototypeOf(val));
@@ -599,7 +599,7 @@ class LoadDeferrer {
 				prox[Constants.SetState] = getUnderlying(link);
 
 				if (existing && existing !== prox) {
-					throw new Error("Divergent references " + prox.location);
+					throw new Error(`Divergent references ${prox} ` + prox.location);
 				}
 				// now we track the instance
 				this.ctx.addInstance(prox);

@@ -10,13 +10,13 @@ export class ZLibCompression implements ICompression {
 		return Buffer.from(pako.deflateRaw(json));
 	}
 	decompress(data: Buffer[]): string {
-		const raw = data.toString();
+		const buf = data[data.length - 1];
+		const raw = buf.toString();
 		if (/^\{.*\}$|^\[.*\]$/.test(raw)) {
 			// is json
 			return raw;
 		} else {
 			// is compressed
-			const buf = data[data.length - 1];
 			const ui32 = new Uint8Array(buf, buf.byteOffset, buf.byteLength / Uint8Array.BYTES_PER_ELEMENT);
 			return pako.inflateRaw(ui32, { to: "string" });
 		}

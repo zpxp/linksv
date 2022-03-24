@@ -109,3 +109,14 @@ export type LinkRef = {
 function isLinkRef(o: any): o is LinkRef {
 	return o && typeof o === "object" && deserializeLink in o;
 }
+
+
+export function chunk<T>(arr: T[], chunk: number): T[][] {
+	let i: number, j: number, temporary: T[];
+	const rtn = [];
+	for (i = 0, j = arr.length; i < j; i += chunk) {
+		temporary = arr.slice(i, i + chunk);
+		rtn.push(temporary);
+	}
+	return rtn;
+}
