@@ -90,6 +90,10 @@ To load a location from chain:
 const swordInstance = await ctx.load(Sword, locationToLoadStr);
 ```
 
+To give a template an owner, requiring that owner to sign whenever a new instance of a link in constructed, call `tx.deploy(LinkClass, ownerAddrStr)` then `tx.publish()`. See [template owner tests](src/linksv/__tests__/TemplateOwner.test.ts) for more info.
+
+## Backend
+
 You will need to run a provider backend to store link locations. Clone this repo onto your server and run:
 
 ``` bash
