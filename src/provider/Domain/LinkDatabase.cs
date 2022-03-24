@@ -12,6 +12,7 @@ public class LinkDatabase : DbContext
 
 	public virtual DbSet<LinkOrigin> Origins { get; set; }
 	public virtual DbSet<LinkLocation> Locations { get; set; }
+	public virtual DbSet<LinkOwner> Owners { get; set; }
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{
