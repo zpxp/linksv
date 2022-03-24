@@ -31,6 +31,6 @@
 	},
 	"include": [
 		"./node_modules/@types",
-		"./src/**/*"
+		"./src/linksv/**/*"
 	]
 }

@@ -29,13 +29,13 @@ const getPublicUrl = appPackageJson =>
 
 // config after eject: we're in ./config/
 module.exports = {
-  appDefinitions: resolveApp('src/@types'),
+  appDefinitions: resolveApp('src/linksv/@types'),
   appPath: resolveApp('.'),
   appBuildDist: resolveApp('dist'),
   appBuildLib: resolveApp('lib'),
-  appIndexJs: resolveApp('src/index.ts'),
+  appIndexJs: resolveApp('src/linksv/index.ts'),
   appPackageJson: resolveApp('package.json'),
-  appSrc: resolveApp('src'),
+  appSrc: resolveApp('src/linksv'),
   yarnLockFile: resolveApp('yarn.lock'),
   testsSetup: resolveApp('config/jest/setupTests.js'),
   proxySetup: resolveApp('config/jext/setupProxy.js'),

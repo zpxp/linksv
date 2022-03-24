@@ -1,6 +1,6 @@
 module.exports = {
-	collectCoverageFrom: ["src/**/*.{js,jsx,ts,tsx}"],
-	roots: ["<rootDir>/src"],
+	collectCoverageFrom: ["src/linksv/**/*.{js,jsx,ts,tsx}"],
+	roots: ["<rootDir>/src/linksv"],
 	preset: "ts-jest",
 	transform: {
 		"^.+\\.(ts|tsx)?$": "ts-jest",
@@ -8,7 +8,7 @@ module.exports = {
 	},
 	setupFiles: ["<rootDir>/scripts/setupTests.js"],
 	testEnvironment: "jsdom",
-	moduleDirectories: ["node_modules", "src", "."],
+	moduleDirectories: ["node_modules", "src/linksv", "."],
 	modulePathIgnorePatterns: [".notest.ts"],
 	moduleFileExtensions: ["web.js", "js", "json", "web.jsx", "jsx", "tsx", "ts", "node"]
 };
