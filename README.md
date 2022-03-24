@@ -1,6 +1,6 @@
 # Link SV
 
-A Bitcoin SV (BSV) data protocol for writing seamless chain reads, writes and updates. Write any arbitrary javascript class value to the blockchain and easily update it.
+A Bitcoin SV (BSV) data protocol for effortless reads, writes and updates. Write any arbitrary javascript class value to the blockchain and easily update it, leaving an immutable audit trail.
 
 ## Installation
 
@@ -100,3 +100,9 @@ If you wish to use a database other than sqlite, you may change the `UseSqlite` 
 
 ### Swagger
 To see what endpoints are provided by the backend, run in debug mode and visit the url [http://localhost:5000/swagger/index.html](http://localhost:5000/swagger/index.html). 
+
+## How it works
+Link SV tracks changes to link instances and serializes those changes to chain on `tx.publish()`. Data is compressed so large amounts of data can be written while maintaining cheap transaction fees. New link locations are automatically recorded in the backend provider so blockchain indexing is not required.
+
+## Note
+node js users will need to replace the `LinkContext.utxoStore` with a node compatible store. It currently defaults to `IndexedDbUtxoStore` which only works in browser contexts. You can run an in memory only store by using `MockUtxoStore` instead.
