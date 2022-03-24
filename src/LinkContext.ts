@@ -1,7 +1,7 @@
 import { WhatsOnChainApi } from "./apis/WhatsOnChain";
 import { Group, isGroupLike } from "./Group";
 import { IApiProvider } from "./IApiProvider";
-import { ILinkProvider } from "./ILinkProvider";
+import { ILinkProvider, ProviderData } from "./ILinkProvider";
 import { getUnderlying, proxyInstance } from "./InstanceProxy";
 import { InstanceStore } from "./InstanceStore";
 import { ILink, ILinkClass, LINK_DUST, Link } from "./Link";
@@ -343,14 +343,14 @@ export class LinkContext {
 	 * you wish to import another client's link
 	 * @param link
 	 */
-	async updateProvider(link: ProviderArgument | ProviderArgument[]): Promise<void> {
+	async updateProvider(link: ProviderData | ProviderData[]): Promise<void> {
 		if (Array.isArray(link)) {
 			if (link.length === 1) {
-				return this.provider.addLocation(link[0].origin, link[0].location, link[0].nonce);
+				return this.provider.addLocation(link[0]);
 			}
-			return this.provider.bulkAddLocation(link.map(x => ({ origin: x.origin, location: x.location, nonce: x.nonce })));
+			return this.provider.bulkAddLocation(link);
 		} else {
-			return this.provider.addLocation(link.origin, link.location, link.nonce);
+			return this.provider.addLocation(link);
 		}
 	}
 
@@ -564,7 +564,6 @@ function getKeys(pk: string): Keys {
 	}
 }
 
-type ProviderArgument = { origin: string; location: string; nonce: number };
 
 /**
  * load deferrer batches api calls while maintaining same instance references

@@ -7,6 +7,7 @@ import { deepCopy, LinkRef } from "./Utils";
 import * as bsv from "bsv";
 import { TxOut, Bn, PubKey, OpCode, Address } from "bsv";
 import "./Fixes";
+import { ProviderData } from "./ILinkProvider";
 
 export class LinkTransaction {
 	get ctx(): LinkContext {
@@ -562,7 +563,7 @@ export class LinkTransaction {
 			const txid = await this.ctx.api.broadcast(raw);
 			this.txid = txid;
 
-			const updateMap = new Map<string, { location: string; nonce: number }>();
+			const updateMap = new Map<string, ProviderData>();
 			try {
 				// write location
 				for (const action of this.actions) {
@@ -574,15 +575,20 @@ export class LinkTransaction {
 							(underlying as Link).origin = `${txid}_${action.outputIndex}`;
 						}
 						if (action.linkProxy instanceof Link) {
-							updateMap.set(action.linkProxy.origin, { location: action.linkProxy.location, nonce: action.linkProxy.nonce });
+							const link = action.linkProxy
+							updateMap.set(link.origin, {
+								location: link.location,
+								nonce: link.nonce,
+								linkName: link[LinkSv.TemplateName],
+								owners: link.owner instanceof Group ? link.owner.pubKeys.map(x => bsv.Address.fromPubKey(x).toString()) : [link.owner],
+								origin: link.origin
+							});
 						}
 					}
 					action.linkProxy[LinkSv.HasChanges] = false;
 				}
 				// write location in the provider store
-				await this.ctx.updateProvider(
-					Array.from(updateMap).map(([origin, x]) => ({ origin, location: x.location, nonce: x.nonce }))
-				);
+				await this.ctx.updateProvider(Array.from(updateMap).map(([origin, x]) => x));
 			} catch (e) {
 				this.ctx.logger?.error(`Updating provider failed. Utxos may be broken now. `, updateMap, e);
 			}

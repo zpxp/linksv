@@ -1,4 +1,4 @@
-import { ILinkProvider } from "../ILinkProvider";
+import { ILinkProvider, ProviderData } from "../ILinkProvider";
 import axios from "axios";
 import axiosRetry from "axios-retry";
 import { chunk } from "../Utils";
@@ -15,10 +15,11 @@ axiosRetry(axios, {
 	}
 });
 
+
 export class BackendLinkProvider implements ILinkProvider {
 	constructor(public host: string) {}
 
-	bulkAddLocation(data: { origin: string; location: string; nonce: number }[]): Promise<void> {
+	bulkAddLocation(data: ProviderData[]): Promise<void> {
 		return axios(this.host + "/api/link/bulklocation", {
 			withCredentials: true,
 			method: "POST",
@@ -26,11 +27,11 @@ export class BackendLinkProvider implements ILinkProvider {
 		}).then(x => x.data);
 	}
 
-	addLocation(origin: string, location: string, nonce: number): Promise<void> {
+	addLocation(data: ProviderData): Promise<void> {
 		return axios(this.host + "/api/link/location", {
 			withCredentials: true,
 			method: "POST",
-			data: { origin, location, nonce }
+			data
 		}).then(x => x.data);
 	}
 

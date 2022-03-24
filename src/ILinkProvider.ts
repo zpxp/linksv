@@ -11,6 +11,8 @@ export interface ILinkProvider {
 	 * @param location
 	 * @param nonce
 	 */
-	addLocation(origin: string, location: string, nonce: number): Promise<void>;
-	bulkAddLocation(data: Array<{ origin: string; location: string; nonce: number }>): Promise<void>;
+	addLocation(data: ProviderData): Promise<void>;
+	bulkAddLocation(data: ProviderData[]): Promise<void>;
 }
+
+export type ProviderData = { origin: string; location: string; nonce: number; owners: string[]; linkName: string };

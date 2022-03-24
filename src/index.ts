@@ -13,7 +13,7 @@ export { EciesCompression } from "./compression/EciesCompression";
 export { NoCompression } from "./compression/NoCompression";
 export { Group } from "./Group";
 export type { IApiProvider } from "./IApiProvider";
-export type { ILinkProvider } from "./ILinkProvider";
+export type { ILinkProvider, ProviderData } from "./ILinkProvider";
 export type { IUtxoStore } from "./IUtxoStore";
 export { WhatsOnChainApi } from "./apis/WhatsOnChain";
 export { IndexedDbUtxoStore } from "./utxostores/IndexedDbUtxoStore";

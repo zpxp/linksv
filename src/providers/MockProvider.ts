@@ -1,23 +1,22 @@
-import { ILinkProvider } from "../ILinkProvider";
-
+import { ILinkProvider, ProviderData } from "../ILinkProvider";
 
 /**
  * In memory provider for testing
  */
 export class MockProvider implements ILinkProvider {
-	mockStore: { [origin: string]: { origin: string; location: string; nonce: number }[] } = {};
+	mockStore: { [origin: string]: ProviderData[] } = {};
 
-	bulkAddLocation(data: { origin: string; location: string; nonce: number }[]): Promise<void> {
+	bulkAddLocation(data: ProviderData[]): Promise<void> {
 		for (const item of data) {
 			this.mockStore[item.origin] ||= [];
-			this.mockStore[item.origin].push(item);
+			this.mockStore[item.origin].push({ ...item });
 		}
 		return Promise.resolve();
 	}
 
-	addLocation(origin: string, location: string, nonce: number): Promise<void> {
-		this.mockStore[origin] ||= [];
-		this.mockStore[origin].push({ origin, location, nonce });
+	addLocation(data: ProviderData): Promise<void> {
+		this.mockStore[data.origin] ||= [];
+		this.mockStore[data.origin].push({ ...data });
 		return Promise.resolve();
 	}
 
