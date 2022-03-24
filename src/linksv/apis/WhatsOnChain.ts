@@ -8,7 +8,8 @@ const http = rateLimit(axios.create(), { maxRPS: 3 });
 
 export class WhatsOnChainApi implements IApiProvider {
 	getTx(txid: string): Promise<bsv.Tx> {
-		return http(`https://api.whatsonchain.com/v1/bsv/test/tx/${txid}/hex`, {
+		const istest = bsv.Constants.Default === bsv.Constants.Testnet;
+		return http(`https://api.whatsonchain.com/v1/bsv/${istest ? "test" : "main"}/tx/${txid}/hex`, {
 			responseType: "text"
 		})
 			.then(res => {
@@ -20,12 +21,13 @@ export class WhatsOnChainApi implements IApiProvider {
 			.then(res => bsv.Tx.fromHex(res));
 	}
 	async getBulkTx(txids: string[]): Promise<{ [txid: string]: bsv.Tx }> {
+		const istest = bsv.Constants.Default === bsv.Constants.Testnet;
 		const res: bsv.Tx[][] = await Promise.all(
 			chunk(
 				txids.filter(x => !!x),
 				20
 			).map(x =>
-				http(`https://api.whatsonchain.com/v1/bsv/test/txs/hex`, {
+				http(`https://api.whatsonchain.com/v1/bsv/${istest ? "test" : "main"}/txs/hex`, {
 					method: "POST",
 					data: {
 						txids: x
@@ -46,7 +48,8 @@ export class WhatsOnChainApi implements IApiProvider {
 		return Object.fromEntries(res.flatMap(x => x.map(x => [x.hash().reverse().toString("hex"), x])));
 	}
 	broadcast(txraw: string): Promise<string> {
-		return http(`https://api.whatsonchain.com/v1/bsv/test/tx/raw`, {
+		const istest = bsv.Constants.Default === bsv.Constants.Testnet;
+		return http(`https://api.whatsonchain.com/v1/bsv/${istest ? "test" : "main"}/tx/raw`, {
 			method: "POST",
 			responseType: "text",
 			data: { txhex: txraw }
@@ -60,7 +63,7 @@ export class WhatsOnChainApi implements IApiProvider {
 			.then(r => r.replace(/["\s]+/g, ""));
 	}
 	getUnspentUtxos(address: string): Promise<Utxo[]> {
-		return http(`https://api.whatsonchain.com/v1/bsv/test/address/${address}/unspent`).then(d => d.data);
+		const istest = bsv.Constants.Default === bsv.Constants.Testnet;
+		return http(`https://api.whatsonchain.com/v1/bsv/${istest ? "test" : "main"}/address/${address}/unspent`).then(d => d.data);
 	}
 }
-

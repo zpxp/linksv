@@ -46,4 +46,4 @@ yarn-error.log*
 *.xlk
 
 bash.exe.stackdump
-.providerVolume
+.data
