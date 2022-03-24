@@ -1,18 +1,33 @@
 # Link SV
 
-A Bitcoin SV (BSV) data protocol for effortless reads, writes and updates. Write any arbitrary javascript class value to the blockchain and easily update it, leaving an immutable audit trail.
+A Bitcoin SV (BSV) data protocol for effortless reads, writes and updates. Write any arbitrary javascript class value to the blockchain and easily update it, leaving an immutable audit trail. 
+
+Each class instance that is written to chain is called a link and the class definition is the template.
+
+## Features
+
+- Full control over your data
+- BSV 2 library
+- First class data transaction management
+- Link templates enforce data contracts
+- Node and browser compatible
+- NPM package, no more unpkg
+- Works with modern build tools such as Babel and typescript
+- No restrictions placed on what can be inside your link classes - use native code, `for in` loops, `Math.random()` etc.
+- Optional template ownership enforces co-signing to validate links are authentic
+- Back-to-genesis problem is irrelevant as only your trusted apps control templates and their data; Link SV is not a layer 2 token protocol (though it would be possible to build a layer 2 token on linksv)
 
 ## Installation
 
 ```
-npm install linksv axios axios-rate-limit axios-retry bsv pako dexie
+npm install linksv axios axios-rate-limit axios-retry bsv pako
 ```
 Or
 ```
-yarn add linksv axios axios-rate-limit axios-retry bsv pako dexie
+yarn add linksv axios axios-rate-limit axios-retry bsv pako
 ```
 
-If using in the browser also add `crypto-js` and `buffer` npm packages and modify your webpack config like below:
+If using in the browser also add `dexie`, `crypto-js` and `buffer` npm packages and modify your webpack config like so:
 
 ```js
 module.exports = {
