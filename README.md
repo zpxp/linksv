@@ -122,6 +122,8 @@ docker-compose up -d --build --force-recreate
 This will run a instance of the provider backend and store the links in a sqlite database located in `.data/link.db`.
 If you wish to use a database other than sqlite, you may change the `UseSqlite` in `builder.Services.AddDbContext` - `src/provider/Program.cs` to another provider. You may need to install the nuget packages for your relevant database. See [ef core database providers](https://docs.microsoft.com/en-us/ef/core/providers/?tabs=dotnet-core-cli). After setting up the backend, point your client's link provider to it when creating the `LinkContext`.
 
+In production apps it is highly recommended to extend the backend to include authentication, so only trusted parties can write link locations. You may also implement the provider functionality in your own application backend and  include authentication.
+
 ### Swagger
 To see what endpoints are provided by the backend, run in debug mode and visit the url [http://localhost:5000/swagger/index.html](http://localhost:5000/swagger/index.html). 
 
