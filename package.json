@@ -1,6 +1,6 @@
 {
 	"name": "linksv",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"main": "lib/node.index.js",
 	"module": "lib/index.js",
 	"browser": "lib/index.js",
