@@ -3,7 +3,7 @@ import { IUtxoStore } from "../IUtxoStore";
 
 
 /**
- * in memory test utxo store
+ * in memory utxo store
  */
 export class MockUtxoStore implements IUtxoStore {
 	mockStore: { [address: string]: Utxo[] } = {};

@@ -14,6 +14,9 @@ import * as bsv from "bsv";
 import { TxBuilderLike } from "bsv/index";
 import { ICompression } from "./ICompression";
 import { ZLibCompression } from "./compression/ZLibCompression";
+import { MockUtxoStore } from "./utxostores/MockUtxoStore";
+
+const isBrowser = typeof window !== "undefined" && typeof window.document !== "undefined";
 
 export class LinkContext {
 	readonly purse: Keys;
@@ -41,6 +44,9 @@ export class LinkContext {
 		api?: IApiProvider;
 		provider: ILinkProvider;
 		app?: string;
+		/**
+		 * Store to record purse utxos. On browsers, defaults to IndexedDbUtxoStore while nodejs defaults to MockUtxoStore
+		 */
 		utxoStore?: IUtxoStore;
 		compression?: ICompression;
 		logger?: typeof console;
@@ -70,7 +76,7 @@ export class LinkContext {
 		this.serializeTransformer = opts.serializeTransformer;
 		this.deserializeTransformer = opts.deserializeTransformer;
 		this.api = opts.api || new WhatsOnChainApi();
-		this.utxoStore = opts.utxoStore || new IndexedDbUtxoStore();
+		this.utxoStore = opts.utxoStore || (isBrowser ? new IndexedDbUtxoStore() : new MockUtxoStore());
 		this.purse = getKeys(opts.purse);
 		this.owner = getKeys(opts.owner) || this.purse;
 		this.allowSerializeNewLinks = opts.allowSerializeNewLinks;
@@ -563,7 +569,6 @@ function getKeys(pk: string): Keys {
 		};
 	}
 }
-
 
 /**
  * load deferrer batches api calls while maintaining same instance references
