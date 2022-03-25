@@ -37,14 +37,15 @@ describe("TemplateOwner", () => {
 		ctx2.activate();
 		tx2.sign();
 		await tx2.publish({ pay: false });
-		// const hex = tx2.exportHex()
 
 		expect(inst.location).toBe("0000000000000000000000000000000000000000000000000000000000000002_2");
 
-		ctx.activate()
+		ctx.activate();
 		const tx3 = new LinkTransaction();
-		const inst2 = tx3.update(() => new Test());
-		expect(tx3.isFullySigned()).toBe(false);
-
+		tx3.update(() => inst.setCount(1));
+		await tx3.pay();
+		tx3.sign();
+		// we should no longer require template owner to modify instance we own
+		expect(tx3.isFullySigned()).toBe(true);
 	});
 });
