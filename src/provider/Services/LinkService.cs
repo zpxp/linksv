@@ -1,19 +1,9 @@
-using System;
-using System.Reflection;
-using System.Text.Json;
-using Microsoft.AspNetCore.DataProtection;
-using KzBsv;
-using System.Text;
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication;
 using provider.Domain;
 using Microsoft.EntityFrameworkCore;
 using provider.Domain.Models;
 
 namespace provider.Services;
 
-[ScopedService]
 public class LinkService
 {
 	private readonly LinkDatabase db;

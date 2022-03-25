@@ -18,7 +18,7 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.MapServices();
+builder.Services.AddScoped<LinkService>();
 
 builder.Services.AddCors(options =>
 {
@@ -32,8 +32,6 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddDbContext<LinkDatabase>(opts => opts.UseSqlite(cstr.LinkDbConnectionString));
-builder.Services.AddDataProtection();
-builder.Services.AddHttpContextAccessor();
 
 if (settings.Network == "test")
 {
