@@ -113,7 +113,6 @@ describe("link", () => {
 		expect(a.bs.length).toBe(4);
 		expect(a.bs.every(x => x.cs === a.cs)).toBeTruthy();
 		expect(a.bs.every(x => x.cs.location === a.cs.location)).toBeTruthy();
-		expect(a.bs.every(x => x.cs === a.cs)).toBeTruthy();
 	});
 
 	test("Should have same references2", async () => {
