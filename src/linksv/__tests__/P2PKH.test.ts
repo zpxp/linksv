@@ -9,6 +9,21 @@ describe("P2PKH", () => {
 		expect(Link).toEqual(expect.anything());
 	});
 
+	test("Should send sats", async () => {
+		const { ctx } = prepare();
+		const ltx = new LinkTransaction();
+		const addy = Address.fromRandom();
+		ltx.send(addy, 55555);
+		const txid = await ltx.publish();
+		expect(txid).toEqual("0000000000000000000000000000000000000000000000000000000000000001");
+		const { tx, json } = await ctx.getRawChainData(txid);
+		expect(json).toBe('{"o":[]}');
+		expect(tx.txOuts.length).toBe(3);
+		expect(tx.txOuts[1].valueBn.toNumber()).toBe(55555);
+		expect(tx.txOuts[1].script.chunks[2].buf.toString("hex")).toBe(addy.hashBuf.toString("hex"));
+	});
+
+
 	test("Edit include P2PKH output in link transaction", async () => {
 		const { ctx } = prepare();
 		const ltx = new LinkTransaction();
