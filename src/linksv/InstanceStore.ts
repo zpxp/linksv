@@ -24,4 +24,8 @@ export class InstanceStore {
 			this.instances.push(inst);
 		}
 	}
+
+	remove(inst: Link) {
+		this.instances.remove(inst);
+	}
 }

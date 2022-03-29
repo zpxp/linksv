@@ -15,6 +15,7 @@ export class LinkTransaction {
 	private txb: bsv.TxBuilder;
 	private lockTx: boolean;
 	private _lastTx: LinkTransaction;
+	private additionalOutputs: Array<{ toAddrStr: string; satoshis: number }> = [];
 
 	constructor(raw?: string | bsv.TxBuilderLike) {
 		if (typeof raw === "string") {
@@ -23,6 +24,7 @@ export class LinkTransaction {
 		} else if (raw) {
 			this.txb = bsv.TxBuilder.fromJSON(raw);
 			this.actions = raw.recordActions || [];
+			this.additionalOutputs = raw.additionalOutputs || [];
 			this.lockTx = true;
 			for (const action of this.actions) {
 				if (!action.linkProxy.isDestroyed && action.type === LinkRecord.CALL && action.target === "destroy") {
@@ -211,6 +213,18 @@ export class LinkTransaction {
 	}
 
 	/**
+	 * Include a P2PKH output in this transaction, sending the given amount of satoshis to the recipient address
+	 * @param recipientAddress Address to send to
+	 * @param satoshis Amount to send
+	 */
+	send(recipientAddress: string | Address, satoshis: number) {
+		if (typeof recipientAddress !== "string") {
+			recipientAddress = recipientAddress.toString();
+		}
+		this.additionalOutputs.push({ toAddrStr: recipientAddress, satoshis });
+	}
+
+	/**
 	 * Sign all inputs that match the current LinkContext's owner and purse private keys
 	 */
 	sign() {
@@ -307,6 +321,7 @@ export class LinkTransaction {
 				];
 			})
 		);
+		rtn.additionalOutputs = this.additionalOutputs;
 		return rtn;
 	}
 
@@ -330,6 +345,7 @@ export class LinkTransaction {
 			this.txb = new bsv.TxBuilder();
 			this.lockTx = false;
 			this.actions = [];
+			this.additionalOutputs = [];
 		}
 	}
 
@@ -341,9 +357,14 @@ export class LinkTransaction {
 		this.lockTx = false;
 		for (let i = this.actions.length - 1; i >= 0; i--) {
 			const action = this.actions[i];
+			if (!action.preActionSnapshot && action.linkProxy instanceof Link) {
+				// clear from store
+				this.ctx.store.remove(action.linkProxy);
+			}
 			(action.linkProxy as any)[Constants.SetState] = action.preActionSnapshot;
 		}
 		this.actions = [];
+		this.additionalOutputs = [];
 	}
 
 	/**
@@ -358,6 +379,15 @@ export class LinkTransaction {
 		this.txb.setFeePerKbNum(satsPerByte * 1000);
 		this.txb.setDust(0);
 		let estimatedFee = Math.ceil(this.txb.estimateSize() * satsPerByte * 1000) * 2;
+		const totalInputs = Array.from(this.txb.uTxOutMap.map)
+			.map(([txid, input]) => input)
+			.reduce((prev, next) => prev.add(next.valueBn), new Bn());
+		const totalOutput = this.txb.txOuts.reduce((prev, next) => prev.add(next.valueBn), new Bn());
+		const inputOutputDifference = totalOutput.sub(totalInputs).toNumber();
+		if (inputOutputDifference > 0) {
+			// include output difference in payment calculation
+			estimatedFee += inputOutputDifference;
+		}
 
 		const payAddress = opts?.payFromAddress ? Address.fromString(opts.payFromAddress) : this.ctx.purse.address;
 		const payAddressStr = payAddress.toString();
@@ -516,6 +546,9 @@ export class LinkTransaction {
 		for (const outp of pendingOutputs) {
 			this.addOutput(outp.toAddrStr, outp.satoshis);
 		}
+		for (const outp of this.additionalOutputs) {
+			this.addOutput(outp.toAddrStr, outp.satoshis);
+		}
 	}
 
 	/**
@@ -574,12 +607,15 @@ export class LinkTransaction {
 							(underlying as Link).origin = `${txid}_${action.outputIndex}`;
 						}
 						if (action.linkProxy instanceof Link) {
-							const link = action.linkProxy
+							const link = action.linkProxy;
 							updateMap.set(link.origin, {
 								location: link.location,
 								nonce: link.nonce,
 								linkName: link[LinkSv.TemplateName],
-								owners: link.owner instanceof Group ? link.owner.pubKeys.map(x => bsv.Address.fromPubKey(x).toString()) : [link.owner],
+								owners:
+									link.owner instanceof Group
+										? link.owner.pubKeys.map(x => bsv.Address.fromPubKey(x).toString())
+										: [link.owner],
 								origin: link.origin
 							});
 						}

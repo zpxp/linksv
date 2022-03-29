@@ -2367,6 +2367,7 @@ declare module 'bsv/tx-builder' {
       hashCache: HashCacheLike;
 		recordActions: any[]
 		currentLinkStates: {[location:string]: any}
+		additionalOutputs:  Array<{ toAddrStr: string; satoshis: number }>
   }
   export class TxBuilder extends Struct {
       tx: Tx;

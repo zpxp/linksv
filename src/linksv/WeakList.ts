@@ -18,6 +18,13 @@ export class WeakList<T extends object> {
 		return this.list.push(new WeakRef(item));
 	}
 
+	remove(item: T) {
+		const index = this.list.findIndex(x => x.deref() === item);
+		if (~index) {
+			this.list.splice(index, 1);
+		}
+	}
+
 	getInstances(): ReadonlyArray<T> {
 		const rtn = [];
 		for (let i = this.list.length - 1; i >= 0; i--) {

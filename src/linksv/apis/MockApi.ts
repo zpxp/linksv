@@ -12,7 +12,7 @@ export class MockApi implements IApiProvider {
 	count = 0;
 	getUnspentUtxos(address: string): Promise<Utxo[]> {
 		return Promise.resolve([
-			{ tx_pos: 1, tx_hash: "0000000000000000000000000000000000000000000000000000000000000000", value: 2e8 },
+			{ tx_pos: 1, tx_hash: "0000000000000000000000000000000000000000000000000000000000000000", value: 1e8 },
 			{ tx_pos: 2, tx_hash: "0000000000000000000000000000000000000000000000000000000000000000", value: LINK_DUST }
 		]);
 	}
