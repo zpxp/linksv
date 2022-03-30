@@ -4,7 +4,7 @@
 		"experimentalDecorators": true,
 		"allowSyntheticDefaultImports": true,
 		"esModuleInterop": true,
-		"target": "es5",
+		"target": "ES6",
 		"declaration": true,
 		"outDir": "lib",
 		"sourceMap": true,
