@@ -7,7 +7,7 @@ process.env.NODE_ENV = "production";
 // Makes the script crash on unhandled rejections instead of silently
 // ignoring them. In the future, promise rejections that are not handled will
 // terminate the Node.js process with a non-zero exit code.
-process.on("unhandledRejection", (err) => {
+process.on("unhandledRejection", err => {
 	throw err;
 });
 
@@ -40,14 +40,19 @@ build()
 			} else {
 				console.log(chalk.green("Compiled successfully.\n"));
 			}
+			// copy node index d file
+			fs.copySync(path.join(paths.appBuildLib, "index.d.ts"), path.join(paths.appBuildLib, "node.index.d.ts"), {
+				dereference: true,
+				filter: file => file !== paths.appHtml
+			});
 		},
-		(err) => {
+		err => {
 			console.log(chalk.red("Failed to compile.\n"));
 			console.error(err);
 			process.exit(1);
 		}
 	)
-	.catch((err) => {
+	.catch(err => {
 		if (err && err.message) {
 			console.log(err.message);
 		}
@@ -95,7 +100,7 @@ function build() {
 function copyPublicFolder() {
 	fs.copySync(paths.appPublic, paths.appBuildDist, {
 		dereference: true,
-		filter: (file) => file !== paths.appHtml
+		filter: file => file !== paths.appHtml
 	});
 }
 
@@ -114,11 +119,11 @@ function formatMessage(message) {
 
 	// Strip Webpack-added headers off errors/warnings
 	// https://github.com/webpack/webpack/blob/master/lib/ModuleError.js
-	lines = lines.filter((line) => !/Module [A-z ]+\(from/.test(line));
+	lines = lines.filter(line => !/Module [A-z ]+\(from/.test(line));
 
 	// Transform parsing error into syntax error
 	// TODO: move this to our ESLint formatter?
-	lines = lines.map((line) => {
+	lines = lines.map(line => {
 		const parsingError = /Line (\d+):(?:(\d+):)?\s*Parsing error: (.+)$/.exec(line);
 		if (!parsingError) {
 			return line;

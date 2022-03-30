@@ -2,7 +2,6 @@
 	"name": "linksv",
 	"version": "0.1.2",
 	"main": "lib/node.index.js",
-	"module": "lib/index.js",
 	"browser": "lib/index.js",
 	"repository": "git@github.com:zpxp/linksv.git",
 	"author": "brendo",
