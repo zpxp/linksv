@@ -20,7 +20,7 @@ export class InstanceStore {
 
 	set(inst: Link) {
 		const insts = this.instances.getInstances();
-		if (!insts.find(x => x.location === inst.location)) {
+		if (!inst.location || !insts.find(x => x.location === inst.location)) {
 			this.instances.push(inst);
 		}
 	}

@@ -7,7 +7,7 @@ import { LinkTransaction } from "./LinkTransaction";
 export const LINK_DUST = 111; // 182;
 
 /**
- * Base class for all links. Extend your template class with this and decorate it with @LinkTemplate 
+ * Base class for all links. Extend your template class with this and decorate it with @LinkTemplate
  * to track changes to class instances and write them to chain.
  */
 export abstract class Link {
@@ -89,7 +89,8 @@ export abstract class Link {
 			const mapped = Object.entries(latests).map(([origin, link]) => ({ link: links.find(l => l.origin === origin), latest: link }));
 			const needsUpdating = mapped.filter(x => x.latest && x.latest.location !== x.link.location && x.latest.nonce > x.link.nonce);
 			const result = await LinkContext.activeContext.bulkLoad(
-				needsUpdating.map(x => ({ template: Object.getPrototypeOf(x.link), location: x.latest.location }))
+				needsUpdating.map(x => ({ template: Object.getPrototypeOf(x.link), location: x.latest.location })),
+				{ trackInstances: false }
 			);
 			for (const [location, link] of Object.entries(result)) {
 				const updateThis = needsUpdating.find(
@@ -106,7 +107,7 @@ export abstract class Link {
 		} else {
 			const row = await LinkContext.activeContext.provider.getLatestLocationForOrigin(this.origin);
 			if (row && row.location !== this.location && row.nonce > this.nonce) {
-				const updated = await LinkContext.activeContext.load(Object.getPrototypeOf(this), row.location);
+				const updated = await LinkContext.activeContext.load(Object.getPrototypeOf(this), row.location, { trackInstances: false });
 				if (!updated) {
 					throw new Error(`Cannot load location ${row.location} nothing found`);
 				}

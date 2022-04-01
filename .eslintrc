@@ -10,6 +10,7 @@
 		"plugin:@typescript-eslint/recommended"
 	],
 	"rules": {
-		"no-mixed-spaces-and-tabs": "off" // fix prettier formatting
+		"no-mixed-spaces-and-tabs": "off", // fix prettier formatting
+		"@typescript-eslint/no-inferrable-types": "off"
 	}
 }

@@ -21,7 +21,7 @@ export class MockProvider implements ILinkProvider {
 	}
 
 	getLatestLocationForOrigin(origin: string) {
-		return Promise.resolve(this.mockStore[origin]?.sort((a, b) => a.nonce - b.nonce)[0]);
+		return Promise.resolve(this.mockStore[origin]?.sort((a, b) => b.nonce - a.nonce)[0]);
 	}
 
 	bulkGetLatestLocationForOrigin(origins: string[]): Promise<TT> {
