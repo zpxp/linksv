@@ -22,6 +22,17 @@ export class IndestructibleSword extends Link {
 	}
 }
 
+@LinkTemplate("Car")
+export class Car extends Link {
+	constructor() {
+		super();
+	}
+
+	doDestroy() {
+		this.destroy();
+	}
+}
+
 describe("link", () => {
 	test("Should destroy", async () => {
 		let { tx, ctx } = prepare();
@@ -33,6 +44,39 @@ describe("link", () => {
 		const txid = await tx.publish();
 		expect(inst.satoshis).toEqual(0);
 		const { json } = await ctx.getRawChainData(txid);
+		expect(json).toEqual('{"o":[]}');
+	});
+
+	test("Should destroy 2", async () => {
+		let { tx, ctx } = prepare();
+		const inst = tx.update(() => new Car());
+		await tx.publish();
+		expect(inst.satoshis).toEqual(LINK_DUST);
+		tx = new LinkTransaction();
+		tx.update(() => inst.doDestroy());
+		const txid = await tx.publish();
+		expect(inst.satoshis).toEqual(0);
+		const { json } = await ctx.getRawChainData(txid);
+		expect(json).toEqual('{"o":[]}');
+	});
+
+	test("Should destroy and export import", async () => {
+		let { tx, ctx, ctx2 } = prepare();
+		const inst = tx.update(() => new Car());
+		await tx.publish();
+		expect(inst.satoshis).toEqual(LINK_DUST);
+		tx = new LinkTransaction();
+		tx.update(() => inst.doDestroy());
+		const ex = tx.export();
+
+		ctx2.activate();
+		const tx2 = await ctx2.import(ex);
+		expect(tx2.outputs.length).toBe(0);
+		expect(tx2.inputs.length).toBe(1);
+		expect(tx2.inputs[0].isDestroyed).toBe(true);
+		const txid = await tx2.publish();
+		expect(inst.satoshis).toEqual(0);
+		const { json } = await ctx2.getRawChainData(txid);
 		expect(json).toEqual('{"o":[]}');
 	});
 

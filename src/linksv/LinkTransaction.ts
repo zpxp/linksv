@@ -27,10 +27,8 @@ export class LinkTransaction {
 			this.additionalOutputs = raw.additionalOutputs || [];
 			this.lockTx = true;
 			for (const action of this.actions) {
-				if (!action.linkProxy.isDestroyed && action.type === LinkRecord.CALL && action.target === "destroy") {
-					// correct destruction
-					getUnderlying(action.linkProxy).satoshis = 0;
-				}
+				// correct destruction
+				getUnderlying(action.linkProxy).satoshis = action.satoshis;
 			}
 		} else {
 			this.txb = new bsv.TxBuilder();
@@ -127,7 +125,8 @@ export class LinkTransaction {
 			preActionSnapshot: null,
 			postActionSnapshot: null,
 			fromTemplate: null,
-			linkProxy: template
+			linkProxy: template,
+			satoshis: template.satoshis
 		});
 	}
 
@@ -307,8 +306,7 @@ export class LinkTransaction {
 			args: [],
 			// this isnt required for import
 			postActionSnapshot: null,
-			// only record the original pre state for this link if it has more than one update. save json size
-			preActionSnapshot: this.actions.findIndex(x => x.linkProxy === x.linkProxy) === i ? x.preActionSnapshot : undefined
+			preActionSnapshot: null
 		}));
 		// add this so the deserializer client auto detects state changes in these links and updates to this current state
 		rtn.currentLinkStates = Object.fromEntries(
@@ -824,7 +822,8 @@ export class LinkTransaction {
 			preActionSnapshot: preState,
 			postActionSnapshot: postState,
 			fromTemplate,
-			linkProxy: proxy
+			linkProxy: proxy,
+			satoshis: proxy.satoshis
 		});
 		if (type === LinkRecord.NEW) {
 			// track the instance
@@ -848,6 +847,7 @@ type RecordAction = {
 	linkProxy: ILink;
 	fromTemplate: ILinkClass;
 	inOwner: string | Group;
+	satoshis: number;
 	outOwner: string | Group;
 	args: any[];
 	outputIndex?: number;
