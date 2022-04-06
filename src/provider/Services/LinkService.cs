@@ -25,12 +25,6 @@ public class LinkService
 
 	internal async Task AddOrigin(string origin)
 	{
-		var split = origin.Split('_', 2);
-		if (split.Length != 2 || !int.TryParse(split[1], out var idx) || idx < 1)
-		{
-			throw new Exception($"Invalid origin {origin}");
-		}
-
 		var orig = await db.Origins.FirstOrDefaultAsync(x => x.Origin == origin);
 		if (orig != null)
 		{
@@ -40,9 +34,19 @@ public class LinkService
 
 		db.Origins.Add(new LinkOrigin { Origin = origin });
 		db.Locations.Add(new LinkLocation { Origin = origin, Location = origin, Nonce = 1 });
-		await db.SaveChangesAsync();
 	}
 
+	internal async Task SetLinkDestroyed(string origin, string destroyingTxid)
+	{
+		// you should check that it was actually destroyed using destroyingTxid
+
+		var orig = await db.Origins.FirstOrDefaultAsync(x => x.Origin == origin);
+		if (orig != null)
+		{
+			orig.IsDestroyed = true;
+			await db.SaveChangesAsync();
+		}
+	}
 
 	internal async Task AddLocation(string origin, string location, uint nonce, string linkName, List<string> owners)
 	{
@@ -74,12 +78,20 @@ public class LinkService
 				return;
 			}
 		}
-
-		if (!await db.Origins.AnyAsync(x => x.Origin == origin))
+		else
 		{
-			db.Origins.Add(new LinkOrigin { Origin = origin });
+			await AddOrigin(origin);
 		}
-		var link = new LinkLocation { LinkName = linkName, Origin = origin, Location = location, Nonce = nonce, Owners = new List<LinkOwner>() };
+
+		var link = new LinkLocation
+		{
+			LinkName = linkName,
+			Origin = origin,
+			Location = location,
+			Nonce = nonce,
+			Owners = new List<LinkOwner>()
+		};
+
 		foreach (var owner in owners)
 		{
 			var ownerRow = await db.Owners.FindAsync(owner);
@@ -90,6 +102,7 @@ public class LinkService
 			}
 			link.Owners.Add(ownerRow);
 		}
+
 		db.Locations.Add(link);
 		await db.SaveChangesAsync();
 	}

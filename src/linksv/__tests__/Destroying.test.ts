@@ -1,5 +1,5 @@
 /* eslint-disable prefer-const */
-import { Link, LinkSv, LINK_DUST, LinkTransaction, LinkTemplate } from "..";
+import { Link, LinkSv, LINK_DUST, LinkTransaction, LinkTemplate, MockProvider } from "..";
 import { prepare } from "./Prepare.notest";
 import { Sword } from "./Sword.notest";
 
@@ -35,7 +35,10 @@ export class Car extends Link {
 
 describe("link", () => {
 	test("Should destroy", async () => {
-		let { tx, ctx } = prepare();
+		const mockProvider = new MockProvider();
+		const mock = jest.fn(mockProvider.addLocation);
+		mockProvider.addLocation = mock;
+		let { tx, ctx } = prepare({ provider: mockProvider });
 		const inst = tx.update(() => new Sword("cool sword"));
 		await tx.publish();
 		expect(inst.satoshis).toEqual(LINK_DUST);
@@ -45,6 +48,8 @@ describe("link", () => {
 		expect(inst.satoshis).toEqual(0);
 		const { json } = await ctx.getRawChainData(txid);
 		expect(json).toEqual('{"o":[]}');
+		expect(mock).toBeCalledTimes(2);
+		expect(mock.mock.calls[1][0].destroyingTxid).toBeTruthy();
 	});
 
 	test("Should destroy 2", async () => {

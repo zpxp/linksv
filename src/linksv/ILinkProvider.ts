@@ -15,4 +15,11 @@ export interface ILinkProvider {
 	bulkAddLocation(data: ProviderData[]): Promise<void>;
 }
 
-export type ProviderData = { origin: string; location: string; nonce: number; owners: string[]; linkName: string };
+export type ProviderData = {
+	origin: string;
+	location: string;
+	nonce: number;
+	owners: string[];
+	linkName: string;
+	destroyingTxid: string
+};

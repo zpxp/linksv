@@ -38,22 +38,31 @@ public class LinkController : Controller
 	[HttpPost("location")]
 	public async Task<IActionResult> AddLocation([FromBody] LinkLocationContract data)
 	{
-		await link.AddLocation(data.Origin, data.Location, data.Nonce, data.LinkName, data.Owners);
+		if (string.IsNullOrWhiteSpace(data.DestroyingTxid))
+		{
+			await link.AddLocation(data.Origin, data.Location, data.Nonce, data.LinkName, data.Owners);
+		}
+		else
+		{
+			await link.SetLinkDestroyed(data.Origin, data.DestroyingTxid);
+		}
 		return NoContent();
 	}
 
 	[HttpPost("bulklocation")]
 	public async Task<IActionResult> AddBulkLocation([FromBody] List<LinkLocationContract> data)
 	{
-		await Task.WhenAll(data.Select(x => link.AddLocation(x.Origin, x.Location, x.Nonce, x.LinkName, x.Owners)));
-		return NoContent();
-	}
-
-
-	[HttpPost("origin")]
-	public async Task<IActionResult> AddOrigin([FromBody] string origin)
-	{
-		await link.AddOrigin(origin);
+		await Task.WhenAll(data.Select(x =>
+		{
+			if (string.IsNullOrWhiteSpace(x.DestroyingTxid))
+			{
+				return link.AddLocation(x.Origin, x.Location, x.Nonce, x.LinkName, x.Owners);
+			}
+			else
+			{
+				return link.SetLinkDestroyed(x.Origin, x.DestroyingTxid);
+			}
+		}));
 		return NoContent();
 	}
 }
@@ -86,4 +95,9 @@ public class LinkLocationContract
 	/// </summary>
 	/// <value></value>
 	public List<string> Owners { get; set; }
+	/// <summary>
+	/// If set, the link was destroyed in this txid
+	/// </summary>
+	/// <value></value>
+	public string DestroyingTxid { get; set; }
 }

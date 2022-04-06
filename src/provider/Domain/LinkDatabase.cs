@@ -21,6 +21,7 @@ public class LinkDatabase : DbContext
 		modelBuilder.Entity<LinkOrigin>(e =>
 		{
 			e.HasKey(x => x.Origin);
+			e.Property(x => x.IsDestroyed).HasDefaultValue(false);
 			e.Property(x => x.Origin).IsRequired();
 
 			e.HasMany(x => x.Locations)
