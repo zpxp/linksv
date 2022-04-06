@@ -306,7 +306,8 @@ export class LinkTransaction {
 			args: [],
 			// this isnt required for import
 			postActionSnapshot: null,
-			preActionSnapshot: null
+			// only record the original pre state for this link if it has more than one update. save json size
+			preActionSnapshot: this.actions.findIndex(d => d.linkProxy === x.linkProxy) === i ? x.preActionSnapshot : undefined
 		}));
 		// add this so the deserializer client auto detects state changes in these links and updates to this current state
 		rtn.currentLinkStates = Object.fromEntries(
