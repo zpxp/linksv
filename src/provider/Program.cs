@@ -17,7 +17,11 @@ builder.Services.Configure<ConnectionStrings>(builder.Configuration.GetSection("
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+	var filePath = Path.Combine(AppContext.BaseDirectory, "provider.xml");
+	c.IncludeXmlComments(filePath, includeControllerXmlComments: true);
+});
 builder.Services.AddScoped<LinkService>();
 
 builder.Services.AddCors(options =>

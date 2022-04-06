@@ -19,7 +19,11 @@ public class LinkController : Controller
 		this.link = link;
 	}
 
-
+	/// <summary>
+	/// Retrieve the latest location for a given origin
+	/// </summary>
+	/// <param name="origin"></param>
+	/// <returns></returns>
 	[HttpGet("latest")]
 	public async Task<IActionResult> GetLatestForOrigin([FromQuery] string origin)
 	{
@@ -28,6 +32,11 @@ public class LinkController : Controller
 	}
 
 
+	/// <summary>
+	/// Retrieve the latest location for many given origin
+	/// </summary>
+	/// <param name="origins"></param>
+	/// <returns>Map of {origins:location}</returns>
 	[HttpPost("bulklatest")]
 	public async Task<IActionResult> BulkGetLatestForOrigin([FromBody] List<string> origins)
 	{
@@ -35,6 +44,11 @@ public class LinkController : Controller
 		return Ok(rows.Where(x => x != null).ToDictionary(x => x.Origin, x => x));
 	}
 
+	/// <summary>
+	/// Record a link in the provider database
+	/// </summary>
+	/// <param name="data"></param>
+	/// <returns></returns>
 	[HttpPost("location")]
 	public async Task<IActionResult> AddLocation([FromBody] LinkLocationContract data)
 	{
@@ -49,6 +63,11 @@ public class LinkController : Controller
 		return NoContent();
 	}
 
+	/// <summary>
+	/// Record many links in the provider database
+	/// </summary>
+	/// <param name="data"></param>
+	/// <returns></returns>
 	[HttpPost("bulklocation")]
 	public async Task<IActionResult> AddBulkLocation([FromBody] List<LinkLocationContract> data)
 	{
