@@ -26,7 +26,7 @@ public class LinkService
 	internal async Task AddOrigin(string origin)
 	{
 		var split = origin.Split('_', 2);
-		if (!int.TryParse(split[1], out var idx) || idx < 1)
+		if (split.Length != 2 || !int.TryParse(split[1], out var idx) || idx < 1)
 		{
 			throw new Exception($"Invalid origin {origin}");
 		}
