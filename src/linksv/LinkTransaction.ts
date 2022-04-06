@@ -621,19 +621,21 @@ export class LinkTransaction {
 						}
 					} else if (action.linkProxy instanceof Link) {
 						// tell provider it is destroyed linkProxy state may be null
-						const link = getUnderlying(action.linkProxy) || action.preActionSnapshot as Link;
-						updateMap.set(link.origin, {
-							location: link.location,
-							nonce: link.nonce,
-							linkName: action.linkProxy[LinkSv.TemplateName],
-							owners:
-								link.owner instanceof Group
-									? link.owner.pubKeys.map(x => bsv.Address.fromPubKey(x).toString())
-									: [link.owner],
-							origin: link.origin,
-							// it was destroyed in this tx
-							destroyingTxid: txid
-						});
+						const link = getUnderlying(action.linkProxy) || (action.preActionSnapshot as Link);
+						if (link) {
+							updateMap.set(link.origin, {
+								location: link.location,
+								nonce: link.nonce,
+								linkName: action.linkProxy[LinkSv.TemplateName],
+								owners:
+									link.owner instanceof Group
+										? link.owner.pubKeys.map(x => bsv.Address.fromPubKey(x).toString())
+										: [link.owner],
+								origin: link.origin,
+								// it was destroyed in this tx
+								destroyingTxid: txid
+							});
+						}
 					}
 					action.linkProxy[LinkSv.HasChanges] = false;
 				}

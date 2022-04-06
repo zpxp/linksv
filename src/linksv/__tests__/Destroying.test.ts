@@ -65,6 +65,18 @@ describe("link", () => {
 		expect(json).toEqual('{"o":[]}');
 	});
 
+
+	test("Should destroy without first publishing", async () => {
+		let { tx, ctx } = prepare();
+		const inst = tx.update(() => new Car());
+		expect(inst.satoshis).toEqual(LINK_DUST);
+		tx.update(() => inst.destroy());
+		const txid = await tx.publish();
+		expect(inst.satoshis).toEqual(0);
+		const { json } = await ctx.getRawChainData(txid);
+		expect(json).toEqual('{"o":[]}');
+	});
+
 	test("Should destroy and export import", async () => {
 		let { tx, ctx, ctx2 } = prepare();
 		const inst = tx.update(() => new Car());
