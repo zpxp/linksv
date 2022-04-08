@@ -71,17 +71,17 @@ public class LinkController : Controller
 	[HttpPost("bulklocation")]
 	public async Task<IActionResult> AddBulkLocation([FromBody] List<LinkLocationContract> data)
 	{
-		await Task.WhenAll(data.Select(x =>
+		foreach (var row in data)
 		{
-			if (string.IsNullOrWhiteSpace(x.DestroyingTxid))
+			if (string.IsNullOrWhiteSpace(row.DestroyingTxid))
 			{
-				return link.AddLocation(x.Origin, x.Location, x.Nonce, x.LinkName, x.Owners);
+				await link.AddLocation(row.Origin, row.Location, row.Nonce, row.LinkName, row.Owners);
 			}
 			else
 			{
-				return link.SetLinkDestroyed(x.Origin, x.DestroyingTxid);
+				await link.SetLinkDestroyed(row.Origin, row.DestroyingTxid);
 			}
-		}));
+		}
 		return NoContent();
 	}
 }
