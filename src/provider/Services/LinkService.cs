@@ -44,7 +44,6 @@ public class LinkService
 		if (orig != null)
 		{
 			orig.IsDestroyed = true;
-			await db.SaveChangesAsync();
 		}
 	}
 
@@ -104,6 +103,5 @@ public class LinkService
 		}
 
 		db.Locations.Add(link);
-		await db.SaveChangesAsync();
 	}
 }

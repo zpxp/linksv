@@ -2,6 +2,7 @@ using System;
 using provider.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using provider.Domain;
 
 namespace provider.Controllers;
 
@@ -12,10 +13,12 @@ namespace provider.Controllers;
 [Route("api/link")]
 public class LinkController : Controller
 {
+	private readonly LinkDatabase db;
 	private readonly LinkService link;
 
-	public LinkController(LinkService link)
+	public LinkController(LinkDatabase db, LinkService link)
 	{
+		this.db = db;
 		this.link = link;
 	}
 
@@ -60,6 +63,7 @@ public class LinkController : Controller
 		{
 			await link.SetLinkDestroyed(data.Origin, data.DestroyingTxid);
 		}
+		await db.SaveChangesAsync();
 		return NoContent();
 	}
 
@@ -82,6 +86,7 @@ public class LinkController : Controller
 				await link.SetLinkDestroyed(row.Origin, row.DestroyingTxid);
 			}
 		}
+		await db.SaveChangesAsync();
 		return NoContent();
 	}
 }
