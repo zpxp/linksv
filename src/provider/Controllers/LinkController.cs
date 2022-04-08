@@ -118,5 +118,5 @@ public class LinkLocationContract
 	/// If set, the link was destroyed in this txid
 	/// </summary>
 	/// <value></value>
-	public string DestroyingTxid { get; set; }
+	public string? DestroyingTxid { get; set; }
 }
