@@ -5,6 +5,7 @@ set -e
 
 yarn test --no-watch
 yarn build
+dotnet test
 
 VERSION=`grep -oP '(?<="version"\: ")[^"]+' ./package.json `
 

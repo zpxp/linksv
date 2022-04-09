@@ -5,6 +5,7 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<DocumentationFile>bin\Release\$(TargetFramework)\$(MSBuildProjectName).xml</DocumentationFile>
+  		<ProduceReferenceAssemblyInOutDir>true</ProduceReferenceAssemblyInOutDir>
 	</PropertyGroup>
 
 	<ItemGroup>

@@ -33,7 +33,6 @@ public class LinkService
 		}
 
 		db.Origins.Add(new LinkOrigin { Origin = origin });
-		db.Locations.Add(new LinkLocation { Origin = origin, Location = origin, Nonce = 1 });
 	}
 
 	internal async Task SetLinkDestroyed(string origin, string destroyingTxid)

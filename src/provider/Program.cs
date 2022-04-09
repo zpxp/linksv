@@ -1,6 +1,10 @@
 using provider.Domain;
 using provider.Services;
 using Microsoft.EntityFrameworkCore;
+using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("ProviderTests")]
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,13 +41,6 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddDbContext<LinkDatabase>(opts => opts.UseSqlite(cstr.LinkDbConnectionString));
 
-if (settings.Network == "test")
-{
-	// use testnet
-	KzBsv.Kz.CreateChainParams(KzBsv.KzChain.test);
-}
-
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -57,11 +54,29 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 
+if (settings.Network == "test" && KzBsv.Kz.Chain == KzBsv.KzChain.unkown)
+{
+	// use testnet
+	KzBsv.Kz.CreateChainParams(KzBsv.KzChain.test);
+}
+
 using (var serviceScope = app.Services.GetService<IServiceScopeFactory>().CreateScope())
 {
 	// run db migration
 	var context = serviceScope.ServiceProvider.GetRequiredService<LinkDatabase>();
-	context.Database.Migrate();
+	if (context.Database.IsRelational())
+	{
+		context.Database.Migrate();
+	}
 }
 
 app.Run();
+
+
+
+namespace provider
+{
+
+	// expose this to allow testing with WebApplicationFactory
+	public partial class Program { }
+}
