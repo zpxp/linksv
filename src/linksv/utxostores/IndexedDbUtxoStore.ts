@@ -101,9 +101,11 @@ export class IndexedDbUtxoStore implements IUtxoStore {
 					const row: UtxoTable = cursor.value;
 					if (row.address === address) {
 						rtns.push({ tx_hash: row.txid, tx_pos: row.idx, value: row.value });
-						value -= row.value;
+						if (value !== null) {
+							value -= row.value;
+						}
 					}
-					if (value < 0) {
+					if (value !== null && value < 0) {
 						resolve(rtns);
 					} else {
 						cursor.continue();

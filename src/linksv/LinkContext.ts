@@ -144,6 +144,22 @@ export class LinkContext {
 	}
 
 	/**
+	 * Make a network call to the api to get the number of satoshis in the purse wallet. Will populate
+	 * the IUtxoStore store with the result.
+	 * @returns total value of purse wallet in satoshis
+	 */
+	async getPurseBalance(): Promise<bsv.Bn> {
+		const utxos = await this.api.getUnspentUtxos(this.purse.addressStr);
+		await this.utxoStore.removeAll(this.purse.addressStr);
+		await this.utxoStore.setUnspent(this.purse.addressStr, utxos);
+		let bn = new bsv.Bn();
+		for (const utxo of utxos) {
+			bn = bn.add(utxo.value);
+		}
+		return bn;
+	}
+
+	/**
 	 * Load a data link and return the template instance
 	 * @param template Link template class to load into
 	 * @param location Data location to load in format <txid>_<output index>

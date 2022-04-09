@@ -12,8 +12,8 @@ Each class instance that is written to chain is called a link and the class defi
 - First class data transaction management
 - Link templates enforce data contracts
 - Node and browser compatible
-- NPM package, no more unpkg
-- Works with modern build tools such as Babel and typescript
+- NPM package
+- Works with modern build tools such as Babel and Typescript
 - No restrictions placed on what can be inside your link classes - use native code, `for in` loops, `Math.random()` etc.
 - Optional template ownership enforces co-signing to validate links are authentic
 - Back-to-genesis problem is irrelevant as only your trusted apps control templates and their data; Link SV is not a layer 2 token protocol (though it would be possible to build a layer 2 token on Link SV)
