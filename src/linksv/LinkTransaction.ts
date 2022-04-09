@@ -114,7 +114,12 @@ export class LinkTransaction {
 	 * @param owner Owner address
 	 */
 	deploy(template: ILinkClass, owner: string) {
-		getUnderlying(template).satoshis = this.ctx.linkSatoshiValue;
+		if (!template.satoshis) {
+			getUnderlying(template).satoshis = this.ctx.templateSatoshiValue;
+		}
+		if (template.satoshis === this.ctx.linkSatoshiValue) {
+			throw new Error("Template satoshi value cannot equal satoshi value for links.");
+		}
 		getUnderlying(template).owner = owner;
 		this.actions.push({
 			type: LinkRecord.DEPLOY,
@@ -524,10 +529,12 @@ export class LinkTransaction {
 				if (!link.owner) {
 					throw new Error(`Link does not have an owner ${link.location}`);
 				}
-				const satLimit = this.ctx.dontSpendUtxosWithValueLessThan || this.ctx.linkSatoshiValue;
-				if (link.satoshis > satLimit && this.ctx.owner.addressStr === this.ctx.purse.addressStr) {
+				const satLimit =
+					this.ctx.dontSpendUtxosWithValueLessThan ||
+					(link instanceof Link ? this.ctx.linkSatoshiValue : this.ctx.templateSatoshiValue);
+				if (link.satoshis < satLimit && this.ctx.owner.addressStr === this.ctx.purse.addressStr) {
 					throw new Error(
-						`Cannot create a link with satoshis greater than ${satLimit} while your purse private key matches your owner private key. ${link}`
+						`Cannot create a link with satoshis less than ${satLimit} while your purse private key matches your owner private key. ${link}`
 					);
 				}
 				pendingOutputs.push({ toAddrStr: link.owner, satoshis: link.satoshis });

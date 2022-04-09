@@ -36,6 +36,7 @@ export class LinkContext {
 	logger: Console;
 	readonly dontSpendUtxosWithValueLessThan: number;
 	readonly linkSatoshiValue: number;
+	readonly templateSatoshiValue: number;
 	readonly allowSerializeNewLinks: boolean;
 
 	constructor(opts: {
@@ -50,10 +51,15 @@ export class LinkContext {
 		utxoStore?: IUtxoStore;
 		compression?: ICompression;
 		logger?: typeof console;
-		/** only spend purse utxos with satoshi value greater than this */
+		/** 
+		 * only spend purse utxos with satoshi value greater than this. Set it to a value greater than linkSatoshiValue when using
+		 * the same wallet for purse and owner
+		 */
 		dontSpendUtxosWithValueLessThan?: number;
-		/** satoshi value to assign link utxos */
+		/** Satoshi value to assign link utxos */
 		linkSatoshiValue?: number;
+		/** Satoshi value to assign template utxos. Cannot be the same value as linkSatoshiValue  */
+		templateSatoshiValue?: number;
 		/**
 		 * Allow serialization of new links that have not yet been given a location in the `LinkContext.serialize` function.
 		 * Enabling this can create complex reference bugs in your application, defaults to false.
@@ -72,6 +78,8 @@ export class LinkContext {
 		this.provider = opts.provider;
 		this.app = opts.app;
 		this.linkSatoshiValue = opts.linkSatoshiValue || LINK_DUST;
+		// this must be different to linkSatoshiValue so we dont spend a link by accident
+		this.templateSatoshiValue = opts.templateSatoshiValue || LINK_DUST - 1;
 		this.dontSpendUtxosWithValueLessThan = opts.dontSpendUtxosWithValueLessThan;
 		this.serializeTransformer = opts.serializeTransformer;
 		this.deserializeTransformer = opts.deserializeTransformer;

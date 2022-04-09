@@ -14,7 +14,7 @@ export abstract class Link {
 	static owner: string = "";
 	static location: string = "";
 	static nonce: number = 0;
-	static satoshis: number = LINK_DUST;
+	static satoshis: number = null;
 	declare static readonly templateName: string;
 	/**
 	 * If set to true, instances of this template will be created as a regular js class instance
