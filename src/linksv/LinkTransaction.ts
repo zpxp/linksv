@@ -522,9 +522,12 @@ export class LinkTransaction {
 
 		let txOutputIndex = pendingOutputs.length + 1; // +1 for script as first output
 		const outputScript = [];
+		const destroyedLinks = [];
 		// write each action utxos outputs
 		for (const [link, actions] of Array.from(uniqueEndLinks)) {
-			if (!link.isDestroyed) {
+			if (link.isDestroyed) {
+				destroyedLinks.push(link);
+			} else {
 				outputScript.push(link);
 				if (!link.owner) {
 					throw new Error(`Link does not have an owner ${link.location}`);
@@ -546,7 +549,7 @@ export class LinkTransaction {
 		}
 
 		// now record the outputs in order
-		const script = this.createScript(startLocations, outputScript);
+		const script = this.createScript(startLocations, outputScript, destroyedLinks);
 		this.txb.outputToScript(new Bn(0), script);
 
 		for (const outp of pendingOutputs) {
@@ -628,8 +631,10 @@ export class LinkTransaction {
 						}
 					} else if (action.linkProxy instanceof Link) {
 						// tell provider it is destroyed linkProxy state may be null
-						const link = getUnderlying(action.linkProxy) || (action.preActionSnapshot as Link);
+						const link = getUnderlying(action.linkProxy);
 						if (link) {
+							link.location = `${txid}_0`;
+							link.nonce++;
 							updateMap.set(link.origin, {
 								location: link.location,
 								nonce: link.nonce,
@@ -728,7 +733,7 @@ export class LinkTransaction {
 		}
 	}
 
-	private createScript(startLocations: string[], uniqueEnds: ILink[]) {
+	private createScript(startLocations: string[], uniqueEnds: ILink[], destroyedLinks: ILink[]) {
 		const record: ChainRecord = {
 			i:
 				startLocations.length === uniqueEnds.length
@@ -740,7 +745,8 @@ export class LinkTransaction {
 				const inst = getUnderlying(x);
 				// increment nonce for the script but dont change the instance just yet
 				return Object.setPrototypeOf({ ...inst, nonce: inst.nonce + 1 }, Object.getPrototypeOf(inst));
-			})
+			}),
+			d: destroyedLinks.length ? destroyedLinks.map(x => startLocations.indexOf(x.location)) : undefined
 		};
 
 		if (record.i && !record.i.length) {
@@ -887,6 +893,8 @@ export type ChainRecord = {
 	i?: number[];
 	/** output states */
 	o: ILink[];
+	/** index of input utxos that are destroyed in this tx */
+	d?: number[];
 };
 
 function isPublicKeyHashOut(script: bsv.Script) {

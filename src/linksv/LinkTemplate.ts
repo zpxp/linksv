@@ -1,7 +1,7 @@
 import { LinkContext, LinkTransaction } from ".";
 import { Constants } from "./Constants";
 import { proxyInstance } from "./InstanceProxy";
-import { ILinkClass } from "./Link";
+import { ILinkClass, Link } from "./Link";
 import { LinkRecord } from "./LinkTransaction";
 
 export function LinkTemplate(uniqueName: string) {
@@ -16,7 +16,7 @@ export function LinkTemplate(uniqueName: string) {
 		const rtn = new Proxy<T>(c, {
 			construct(target: any, argArray: any[], newTarget: any): object {
 				const template = c as ILinkClass;
-				const inst = Reflect.construct(target, argArray, newTarget);
+				const inst: Link = Reflect.construct(target, argArray, newTarget);
 				// if template is deployed, set its loca
 				inst.templateLocation = template.location || undefined;
 				inst.nonce = 0;

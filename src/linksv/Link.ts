@@ -39,11 +39,22 @@ export abstract class Link {
 		this.origin = null;
 	}
 
+	/**
+	 * The location of the first transaction that created this link, in the format <txid>_<utxo output index>
+	 */
 	origin: string;
+	/**
+	 * The current location of this link's data, in the format <txid>_<utxo output index>.
+	 * If the link is destroyed, the format is <destroying txid>_0
+	 */
 	location: string;
 	nonce: number;
 	satoshis: number;
 	owner: Group | string;
+	/**
+	 * Location of this link's template, or undefined if this link's template is not deployed.
+	 * This is populated automatically
+	 */
 	templateLocation: string;
 
 	/**

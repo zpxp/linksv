@@ -74,7 +74,10 @@ export async function deepLink<T>(
 	} else if (source && typeof source === "object") {
 		for (const prop of Object.getOwnPropertyNames(source)) {
 			const val = (source as any)[prop];
-			(source as any)[prop] = await deepLink(val, ctx, activeTx, loadTx, addInstance);
+			if (prop !== "preActionSnapshot" && prop !== "postActionSnapshot") {
+				// dont link the tx export snapshots
+				(source as any)[prop] = await deepLink(val, ctx, activeTx, loadTx, addInstance);
+			}
 		}
 
 		if (
@@ -109,7 +112,6 @@ export type LinkRef = {
 function isLinkRef(o: any): o is LinkRef {
 	return o && typeof o === "object" && deserializeLink in o;
 }
-
 
 export function chunk<T>(arr: T[], chunk: number): T[][] {
 	let i: number, j: number, temporary: T[];
