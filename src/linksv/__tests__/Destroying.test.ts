@@ -68,6 +68,21 @@ describe("link", () => {
 		expect(json).toBe('{"o":[],"d":[0]}');
 	});
 
+	test("Should load destroyed link", async () => {
+		let { tx, ctx } = prepare();
+		const inst = tx.update(() => new Sword("cool sword"));
+		await tx.publish();
+		tx = new LinkTransaction();
+		tx.update(() => inst.destroy());
+		await tx.publish();
+
+		// make a new context so we dont load the same ref
+		let { ctx: ctx2 } = prepare({ api: ctx.api, provider: ctx.provider });
+		const inst2 = await ctx2.load(Sword, inst.location);
+		expect(inst2.isDestroyed).toBe(true);
+		expect(inst2[LinkSv.IsProxy]).toBeFalsy();
+	});
+
 	test("Should destroy without first publishing", async () => {
 		let { tx, ctx } = prepare();
 		const inst = tx.update(() => new Car());

@@ -51,7 +51,7 @@ export class LinkContext {
 		utxoStore?: IUtxoStore;
 		compression?: ICompression;
 		logger?: typeof console;
-		/** 
+		/**
 		 * only spend purse utxos with satoshi value greater than this. Set it to a value greater than linkSatoshiValue when using
 		 * the same wallet for purse and owner
 		 */
@@ -121,6 +121,11 @@ export class LinkContext {
 	 * @param proxy
 	 */
 	addInstance(proxy: Link) {
+		if (!proxy[LinkSv.IsProxy]) {
+			// untracked
+			return proxy;
+		}
+
 		const existingOrigin = proxy.origin && this.store.getOrigin(proxy.origin);
 		if (existingOrigin && (existingOrigin.nonce < proxy.nonce || existingOrigin !== proxy)) {
 			// update it
@@ -405,6 +410,16 @@ export class LinkContext {
 		if (isNaN(outputIdx)) {
 			throw new Error("Invalid location cannot load " + location);
 		}
+
+		if (outputIdx === 0) {
+			// its destroyed
+			//return default instance
+			const rtn: Link = Object.setPrototypeOf({}, link.prototype || link);
+			rtn.location = location;
+			rtn.satoshis = 0;
+			return rtn as R;
+		}
+
 		let idx = outputIdx - 1;
 
 		let index = 0;
