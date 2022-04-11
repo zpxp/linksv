@@ -1,13 +1,17 @@
 import { PrivKey, Address, PubKey } from "bsv";
 import { LinkContext, MockProvider, MockApi, MockUtxoStore, LinkTransaction, IApiProvider, ILinkProvider, ICompression } from "..";
 
-export function prepare(opts: { api?: IApiProvider; provider?: ILinkProvider, serialUntracked?: boolean, compression?: ICompression } = {}) {
+export function prepare(
+	opts: { api?: IApiProvider; provider?: ILinkProvider; serialUntracked?: boolean; compression?: ICompression } = {}
+) {
 	const pursePk = PrivKey.fromRandom();
 	const ownerPk = PrivKey.fromRandom();
-	const ownerAddr = Address.fromPubKey(PubKey.fromPrivKey(ownerPk));
+	const ownerPub = PubKey.fromPrivKey(ownerPk);
+	const ownerAddr = Address.fromPubKey(ownerPub);
 
 	const ownerPk2 = PrivKey.fromRandom();
-	const ownerAddr2 = Address.fromPubKey(PubKey.fromPrivKey(ownerPk));
+	const ownerPub2 = PubKey.fromPrivKey(ownerPk2);
+	const ownerAddr2 = Address.fromPubKey(ownerPub2);
 
 	const ctx2 = new LinkContext({
 		purse: pursePk.toString(),
@@ -34,5 +38,5 @@ export function prepare(opts: { api?: IApiProvider; provider?: ILinkProvider, se
 	ctx.activate();
 	const tx = new LinkTransaction();
 
-	return { ctx, tx, pursePk, ownerAddr, ctx2, ownerAddr2 };
+	return { ctx, tx, pursePk, ownerPk, ownerPub, ownerPub2, ownerAddr, ctx2, ownerAddr2 };
 }

@@ -5,7 +5,7 @@ import { getUnderlying, proxyInstance } from "./InstanceProxy";
 import { Utxo } from "./IApiProvider";
 import { deepCopy, LinkRef } from "./Utils";
 import * as bsv from "bsv";
-import { TxOut, Bn, PubKey, OpCode, Address } from "bsv";
+import { TxOut, Bn, PubKey, OpCode, Address, Script } from "bsv";
 import { ProviderData } from "./ILinkProvider";
 
 export class LinkTransaction {
@@ -286,8 +286,32 @@ export class LinkTransaction {
 
 	/**
 	 * Export JSON of this current transaction. @see LinkTransaction.exportHex for raw hex export
+	 * @param pubKeys Insert the sig pub keys on pending inputs that belong to any of these pub keys
 	 */
-	export() {
+	export(pubKeys?: PubKey[]) {
+		if (pubKeys?.length) {
+			const addressStrMap: { [s: string]: PubKey } = {};
+			for (const pub of pubKeys) {
+				const addressStr = Address.fromPubKey(pub).toString();
+				addressStrMap[addressStr] = pub;
+			}
+			for (const txIn of this.txb.txIns) {
+				for (const sigMap of this.txb.sigOperations.get(txIn.txHashBuf, txIn.txOutNum)) {
+					const { nScriptChunk, type, addressStr, nHashType } = sigMap;
+					if (type !== "pubKey") {
+						continue;
+					}
+					const pub = addressStrMap[addressStr];
+					if (!pub) {
+						continue;
+					}
+					txIn.script.chunks[nScriptChunk] = new Script().writeBuffer(pub.toBuffer()).chunks[0];
+					txIn.setScript(txIn.script);
+					sigMap.log = "successfully inserted public key";
+				}
+			}
+		}
+
 		return this.ctx.serialize(this.toJSON());
 	}
 
@@ -694,8 +718,32 @@ export class LinkTransaction {
 
 	/**
 	 * Export raw tx hex
+	 * @param pubKeys Insert the sig pub keys on pending inputs that belong to any of these pub keys
+	 * @returns
 	 */
-	exportHex() {
+	exportHex(pubKeys?: PubKey[]) {
+		if (pubKeys?.length) {
+			const addressStrMap: { [s: string]: PubKey } = {};
+			for (const pub of pubKeys) {
+				const addressStr = Address.fromPubKey(pub).toString();
+				addressStrMap[addressStr] = pub;
+			}
+			for (const txIn of this.txb.txIns) {
+				for (const sigMap of this.txb.sigOperations.get(txIn.txHashBuf, txIn.txOutNum)) {
+					const { nScriptChunk, type, addressStr, nHashType } = sigMap;
+					if (type !== "pubKey") {
+						continue;
+					}
+					const pub = addressStrMap[addressStr];
+					if (!pub) {
+						continue;
+					}
+					txIn.script.chunks[nScriptChunk] = new Script().writeBuffer(pub.toBuffer()).chunks[0];
+					txIn.setScript(txIn.script);
+					sigMap.log = "successfully inserted public key";
+				}
+			}
+		}
 		const raw = this.txb.tx.toHex();
 		return raw;
 	}
