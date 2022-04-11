@@ -11,10 +11,23 @@ export const LINK_DUST = 111; // 182;
  * to track changes to class instances and write them to chain.
  */
 export abstract class Link {
+	/**
+	 * Set this value to an address string to require that address to sign any creations of this link.
+	 * Will search for any utxo in that address with satoshi value equal to `static satoshis` value
+	 * and spend it back to the same address. Call `LinkTransaction.deploy(...)` to create a utxo
+	 * for that address.
+	 */
 	static owner: string = "";
+	/**
+	 * Location of deploying utxo for this template. Deploying a template is not required in order to
+	 * force owner signature.
+	 */
 	static location: string = "";
 	static nonce: number = 0;
 	static satoshis: number = null;
+	/**
+	 * Name of the template assigned with `@LinkTemplate` decorator.
+	 */
 	declare static readonly templateName: string;
 	/**
 	 * If set to true, instances of this template will be created as a regular js class instance

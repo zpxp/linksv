@@ -10,11 +10,15 @@ export class MockApi implements IApiProvider {
 
 	mockStore: { [txid: string]: Tx } = {};
 	count = 0;
+	unspentUtxos: { [address: string]: Utxo[] } = {};
+
 	getUnspentUtxos(address: string): Promise<Utxo[]> {
-		return Promise.resolve([
-			{ tx_pos: 1, tx_hash: "0000000000000000000000000000000000000000000000000000000000000000", value: 1e8 },
-			{ tx_pos: 2, tx_hash: "0000000000000000000000000000000000000000000000000000000000000000", value: LINK_DUST - 1 }
-		]);
+		return Promise.resolve(
+			this.unspentUtxos[address] || [
+				{ tx_pos: 1, tx_hash: "0000000000000000000000000000000000000000000000000000000000000000", value: 1e8 },
+				{ tx_pos: 2, tx_hash: "0000000000000000000000000000000000000000000000000000000000000000", value: LINK_DUST - 1 }
+			]
+		);
 	}
 	broadcast(txraw: string): Promise<string> {
 		const tx = Tx.fromHex(txraw);

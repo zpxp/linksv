@@ -1,9 +1,11 @@
 import { Link, LinkTransaction, LinkSv, LinkTemplate } from "..";
+import { MockApi } from "../apis/MockApi";
+import { LINK_DUST } from "../Link";
 import { prepare } from "./Prepare.notest";
 import { Sword } from "./Sword.notest";
 
 let i = 0;
-function makeClass() {
+function makeClass(owner?: string) {
 	@LinkTemplate("tt" + i++)
 	class Test extends Link {
 		subObj: { count: number } = {
@@ -12,6 +14,9 @@ function makeClass() {
 
 		arr: any[] = [];
 		arr2: any[] = [];
+		static owner: string = owner;
+		// we also have to manually set this if not deploying
+		static satoshis: number = owner ? LINK_DUST - 1 : undefined;
 
 		setCount(a: number) {
 			this.subObj.count = a;
@@ -89,5 +94,38 @@ describe("TemplateOwner", () => {
 		tx4.sign();
 		// we should no longer require template owner to modify instance we own
 		expect(tx4.isFullySigned()).toBe(true);
+	});
+
+	test("Should require owner sig if has owner but not deployed", async () => {
+		const { tx, ctx, ctx2 } = prepare();
+		const Test = makeClass(ctx2.owner.addressStr);
+		expect(Test.owner).toBe(ctx2.owner.addressStr);
+
+		if (ctx.api instanceof MockApi) {
+			// mock utxo
+			ctx.api.unspentUtxos[ctx2.owner.addressStr] = [
+				{ tx_pos: 2, tx_hash: "8888000000000000000000000000000000000000000000000000000000002220", value: ctx.templateSatoshiValue }
+			];
+		}
+
+		const tx2 = new LinkTransaction();
+		const inst = tx2.update(() => new Test());
+		await tx2.pay();
+		tx2.sign();
+		// will require template owners sig
+		expect(tx2.isFullySigned()).toBe(false);
+		ctx2.activate();
+		tx2.sign();
+		await tx2.publish({ pay: false });
+
+		expect(inst.location).toBe("0000000000000000000000000000000000000000000000000000000000000001_2");
+
+		ctx.activate();
+		const tx3 = new LinkTransaction();
+		tx3.update(() => inst.setCount(1));
+		await tx3.pay();
+		tx3.sign();
+		// we should no longer require template owner to modify instance we own
+		expect(tx3.isFullySigned()).toBe(true);
 	});
 });

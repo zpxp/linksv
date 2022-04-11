@@ -479,6 +479,7 @@ export class LinkTransaction {
 		}
 
 		const startLocations: string[] = [];
+		const mandatorySigsRequired: string[] = [];
 		// write each action utxos inputs
 		for (const [link, actions] of Array.from(uniqueStartLinks)) {
 			if (!link?.location) {
@@ -489,20 +490,28 @@ export class LinkTransaction {
 						`Link does not have a location and it wasn't created in this transaction ${link.owner} ${actions[0].target} ${link}`
 					);
 				}
-				if (hasNew && link instanceof Link && link.templateLocation) {
+				const template = link.constructor as ILinkClass;
+				if (hasNew && link instanceof Link && template.owner) {
 					// get template owner and sign this creation so it is legit
-					const template = link.constructor as ILinkClass;
 					if (template.owner !== link.owner) {
 						if ((template.owner as any) instanceof Group) {
 							throw new Error("A template cannot be owned by a group");
 						}
+						if (mandatorySigsRequired.includes(template.owner)) {
+							// they already have to sign this tx. ignore any further template utxos
+							continue;
+						}
 						// get a unspent utxo from the owner address
 						const ownerUtxos = await this.ctx.api.getUnspentUtxos(template.owner);
-						const utxo = ownerUtxos.find(x => x.value === template.satoshis || template.location.startsWith(x.tx_hash));
+						const [locationHash, locationOutput] = template.location ? template.location.split("_", 2) : [null, "NaN"];
+						const utxo = ownerUtxos.find(
+							x => x.value === template.satoshis || (x.tx_hash === locationHash && x.tx_pos === parseInt(locationOutput, 10))
+						);
 						if (!utxo) {
 							throw new Error(`Cannot find utxo for template ${link[LinkSv.TemplateName]} owner ${template.owner}`);
 						}
 
+						mandatorySigsRequired.push(template.owner);
 						// spend the utxo back to the same owner address to make them sign
 						this.addInput(`${utxo.tx_hash}_${utxo.tx_pos}`, template.owner, utxo.value);
 						pendingOutputs.push({ toAddrStr: template.owner, satoshis: template.satoshis });
@@ -516,6 +525,9 @@ export class LinkTransaction {
 				startLocations.push(link.location);
 				// set the first action input location
 				actions[0].inputLocation = link.location;
+				if (typeof link.owner === "string") {
+					mandatorySigsRequired.push(link.owner);
+				}
 				this.addInput(link.location, link.owner, link.satoshis);
 			}
 		}
