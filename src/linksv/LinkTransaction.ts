@@ -397,8 +397,11 @@ export class LinkTransaction {
 
 	/**
 	 * Pay with unspent utxos from the current context's purse address
+	 * @param payWith Spend these utxos first
+	 * @param payFromAddress Spend utxos from this address. Will require their signature
+	 * @param force Ignore estimated fee and build anyway. Will still fail on publish if you have insufficient funds
 	 */
-	async pay(opts?: { payWith?: Utxo[]; payFromAddress?: string }) {
+	async pay(opts?: { payWith?: Utxo[]; payFromAddress?: string; force?: boolean }) {
 		if (!this.txb.txOuts.length) {
 			await this.build();
 		}
@@ -406,7 +409,7 @@ export class LinkTransaction {
 		const satsPerByte = 0.5;
 		this.txb.setFeePerKbNum(satsPerByte * 1000);
 		this.txb.setDust(0);
-		let estimatedFee = Math.ceil(this.txb.estimateSize() * satsPerByte * 1000) * 2;
+		let estimatedFee = Math.ceil(this.txb.estimateSize() * satsPerByte * 1000);
 		const totalInputs = Array.from(this.txb.uTxOutMap.map)
 			.map(([txid, input]) => input)
 			.reduce((prev, next) => prev.add(next.valueBn), new Bn());
@@ -420,7 +423,7 @@ export class LinkTransaction {
 		const payAddress = opts?.payFromAddress ? Address.fromString(opts.payFromAddress) : this.ctx.purse.address;
 		const payAddressStr = payAddress.toString();
 
-		async function* getUtxos(ctx: LinkContext): AsyncGenerator<Utxo[], never> {
+		async function* getUtxos(ctx: LinkContext): AsyncGenerator<Utxo[], []> {
 			if (opts?.payWith) {
 				// pay with overriden utxos
 				yield opts.payWith;
@@ -433,7 +436,10 @@ export class LinkTransaction {
 			yield local;
 			//then get utxos from miner api
 			yield await ctx.api.getUnspentUtxos(payAddressStr);
-			throw new Error(`Not enough funds. Needed ${estimatedFee} more satoshis`);
+			if (!opts.force) {
+				throw new Error(`Not enough funds. Needed ${estimatedFee} more satoshis`);
+			}
+			return [];
 		}
 
 		const fetchUtxos = getUtxos(this.ctx);
@@ -471,6 +477,11 @@ export class LinkTransaction {
 		this.txb.setChangeAddress(payAddress);
 	}
 
+	/**
+	 * Ensure utxo is not a link and we can spend it
+	 * @param utxo
+	 * @returns
+	 */
 	isValidPurseUtxo(utxo: Utxo) {
 		// make sure we dont spend our link utxos
 		return this.ctx.dontSpendUtxosWithValueLessThan
@@ -486,7 +497,7 @@ export class LinkTransaction {
 		if (this.txb.txOuts.length) {
 			this.txb = new bsv.TxBuilder();
 		}
-		const pendingOutputs: Array<{ toAddrStr: string | Group; satoshis: number }> = [];
+		const cosigOutputs: Array<{ toAddrStr: string | Group; satoshis: number }> = [];
 		const uniqueEndLinks = new Map<ILink, RecordAction[]>();
 		const uniqueStartLinks = new Map<ILink, RecordAction[]>();
 		// const uniqueCreates = new Set<ITemplateClass>();
@@ -538,7 +549,7 @@ export class LinkTransaction {
 						mandatorySigsRequired.push(template.owner);
 						// spend the utxo back to the same owner address to make them sign
 						this.addInput(`${utxo.tx_hash}_${utxo.tx_pos}`, template.owner, utxo.value);
-						pendingOutputs.push({ toAddrStr: template.owner, satoshis: template.satoshis });
+						cosigOutputs.push({ toAddrStr: template.owner, satoshis: template.satoshis });
 					}
 				}
 				continue;
@@ -556,7 +567,19 @@ export class LinkTransaction {
 			}
 		}
 
-		let txOutputIndex = pendingOutputs.length + 1; // +1 for script as first output
+		/*
+
+		output utxo format is per index:
+		[0]: script
+		[1..N]?: link outputs
+		[N..M]?: template cosigs
+		[M..P]?: additional outputs, such as P2PKH
+		[P + 1]: change utxo
+
+ 		*/
+
+		let txOutputIndex = 1; // +1 for script as first output
+		const pendingOutputs: Array<{ toAddrStr: string | Group; satoshis: number }> = [];
 		const outputScript = [];
 		const destroyedLinks = [];
 		// write each action utxos outputs
@@ -589,6 +612,9 @@ export class LinkTransaction {
 		this.txb.outputToScript(new Bn(0), script);
 
 		for (const outp of pendingOutputs) {
+			this.addOutput(outp.toAddrStr, outp.satoshis);
+		}
+		for (const outp of cosigOutputs) {
 			this.addOutput(outp.toAddrStr, outp.satoshis);
 		}
 		for (const outp of this.additionalOutputs) {

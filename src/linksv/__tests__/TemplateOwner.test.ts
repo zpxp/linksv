@@ -50,7 +50,7 @@ describe("TemplateOwner", () => {
 		tx2.sign();
 		await tx2.publish({ pay: false });
 
-		expect(inst.location).toBe("0000000000000000000000000000000000000000000000000000000000000002_2");
+		expect(inst.location).toBe("0000000000000000000000000000000000000000000000000000000000000002_1");
 
 		ctx.activate();
 		const tx3 = new LinkTransaction();
@@ -85,7 +85,7 @@ describe("TemplateOwner", () => {
 		tx3.sign();
 		await tx3.publish({ pay: false });
 
-		expect(inst.location).toBe("0000000000000000000000000000000000000000000000000000000000000003_2");
+		expect(inst.location).toBe("0000000000000000000000000000000000000000000000000000000000000003_1");
 
 		ctx.activate();
 		const tx4 = new LinkTransaction();
@@ -118,7 +118,7 @@ describe("TemplateOwner", () => {
 		tx2.sign();
 		await tx2.publish({ pay: false });
 
-		expect(inst.location).toBe("0000000000000000000000000000000000000000000000000000000000000001_2");
+		expect(inst.location).toBe("0000000000000000000000000000000000000000000000000000000000000001_1");
 
 		ctx.activate();
 		const tx3 = new LinkTransaction();
@@ -127,5 +127,52 @@ describe("TemplateOwner", () => {
 		tx3.sign();
 		// we should no longer require template owner to modify instance we own
 		expect(tx3.isFullySigned()).toBe(true);
+	});
+
+	test("Should load recently constructed link", async () => {
+		const { tx, ctx, ctx2 } = prepare();
+		const Test = makeClass();
+		tx.deploy(Test, ctx2.owner.addressStr);
+		await tx.publish();
+
+		ctx2.activate();
+		const tx2 = new LinkTransaction();
+		const inst = tx2.update(() => new Test());
+		await tx2.publish();
+		expect(inst.location).toBe("0000000000000000000000000000000000000000000000000000000000000002_1");
+		const { tx: chainTx } = await ctx2.getRawChainData("0000000000000000000000000000000000000000000000000000000000000002");
+		expect(chainTx.txOuts.length).toBe(3);
+
+		// seperate instance store
+		const { ctx: ctx3 } = prepare({ api: ctx.api, provider: ctx.provider });
+		ctx3.activate();
+		const inst2 = await ctx3.load(Test, "0000000000000000000000000000000000000000000000000000000000000002_1");
+		expect(inst2).toBeInstanceOf(Test);
+	});
+
+	test("Should load recently constructed link2", async () => {
+		const { tx, ctx, ctx2 } = prepare();
+		const Test = makeClass();
+		tx.deploy(Test, ctx2.owner.addressStr);
+		await tx.publish();
+
+		const tx2 = new LinkTransaction();
+		const inst = tx2.update(() => new Test());
+		await tx2.pay();
+		tx2.sign();
+		// will require template owners sig
+		expect(tx2.isFullySigned()).toBe(false);
+		ctx2.activate();
+		tx2.sign();
+		await tx2.publish({ pay: false });
+		expect(inst.location).toBe("0000000000000000000000000000000000000000000000000000000000000002_1");
+		const { tx: chainTx } = await ctx2.getRawChainData("0000000000000000000000000000000000000000000000000000000000000002");
+		expect(chainTx.txOuts.length).toBe(4);
+
+		// seperate instance store
+		const { ctx: ctx3 } = prepare({ api: ctx.api, provider: ctx.provider });
+		ctx3.activate();
+		const inst2 = await ctx3.load(Test, "0000000000000000000000000000000000000000000000000000000000000002_1");
+		expect(inst2).toBeInstanceOf(Test);
 	});
 });
