@@ -406,19 +406,14 @@ export class LinkTransaction {
 			await this.build();
 		}
 
-		const satsPerByte = 0.5;
-		this.txb.setFeePerKbNum(satsPerByte * 1000);
 		this.txb.setDust(0);
-		let estimatedFee = Math.ceil(this.txb.estimateSize() * satsPerByte * 1000);
 		const totalInputs = Array.from(this.txb.uTxOutMap.map)
 			.map(([txid, input]) => input)
 			.reduce((prev, next) => prev.add(next.valueBn), new Bn());
 		const totalOutput = this.txb.txOuts.reduce((prev, next) => prev.add(next.valueBn), new Bn());
-		const inputOutputDifference = totalOutput.sub(totalInputs).toNumber();
-		if (inputOutputDifference > 0) {
-			// include output difference in payment calculation
-			estimatedFee += inputOutputDifference;
-		}
+		const inputOutputDifference = totalOutput.sub(totalInputs);
+		// include output difference in payment calculation
+		let estimatedFee = this.txb.estimateFee(inputOutputDifference.gt(0) ? inputOutputDifference : undefined).toNumber();
 
 		const payAddress = opts?.payFromAddress ? Address.fromString(opts.payFromAddress) : this.ctx.purse.address;
 		const payAddressStr = payAddress.toString();

@@ -1,5 +1,6 @@
-import { Address, Tx } from "bsv";
+import { Address, PrivKey, PubKey, Tx } from "bsv";
 import { Link, LinkSv } from "..";
+import { MockApi } from "../apis/MockApi";
 import { LinkTransaction } from "../LinkTransaction";
 import { prepare } from "./Prepare.notest";
 import { Sword } from "./Sword.notest";
@@ -23,6 +24,22 @@ describe("P2PKH", () => {
 		expect(tx.txOuts[1].script.chunks[2].buf.toString("hex")).toBe(addy.hashBuf.toString("hex"));
 	});
 
+	test("Should send sats with low balance", async () => {
+		const purse = PrivKey.fromRandom();
+		const { ctx } = prepare({
+			purse,
+			api: new MockApi(true, {
+				[Address.fromPubKey(PubKey.fromPrivKey(purse)).toString()]: [
+					{ tx_pos: 1, tx_hash: "0000000000000000000000000000000000000000000000000000000000000000", value: 1000 }
+				]
+			})
+		});
+		const ltx = new LinkTransaction();
+		const addy = Address.fromRandom();
+		ltx.send(addy, 800);
+		const txid = await ltx.publish();
+		expect(txid).toEqual("0000000000000000000000000000000000000000000000000000000000000001");
+	});
 
 	test("Edit include P2PKH output in link transaction", async () => {
 		const { ctx } = prepare();

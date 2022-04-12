@@ -6,11 +6,10 @@ import { IApiProvider, Utxo } from "../IApiProvider";
  * In memory api for testing
  */
 export class MockApi implements IApiProvider {
-	constructor(private useFakeHash = false) {}
+	constructor(private useFakeHash = false, public unspentUtxos: { [address: string]: Utxo[] } = {}) {}
 
 	mockStore: { [txid: string]: Tx } = {};
 	count = 0;
-	unspentUtxos: { [address: string]: Utxo[] } = {};
 
 	getUnspentUtxos(address: string): Promise<Utxo[]> {
 		return Promise.resolve(
