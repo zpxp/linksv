@@ -432,7 +432,7 @@ export class LinkContext {
 		}
 		const state = chainData.o[index];
 		state.location = location;
-		if (!isLinkInstance(state) && !state.origin) {
+		if (!isTemplateClass(state) && !state.origin) {
 			state.origin = location;
 		}
 		state.satoshis = tx.txOuts[outputIdx].valueBn.toNumber();
@@ -446,7 +446,7 @@ export class LinkContext {
 			state.owner = address.toString();
 		}
 
-		const existing = !isLinkInstance(state) && (this.store.getOrigin(state.origin) || this.loadDeferrer?.getOrigin(state.origin));
+		const existing = !isTemplateClass(state) && (this.store.getOrigin(state.origin) || this.loadDeferrer?.getOrigin(state.origin));
 		if (existing && existing.nonce >= state.nonce) {
 			const existingDefer = this.loadDeferrer?.get(state.location);
 			if (existingDefer && existingDefer !== existing) {
@@ -696,7 +696,7 @@ class LoadDeferrer {
 	}
 }
 
-function isLinkInstance(o: ILink): o is ILinkClass {
+function isTemplateClass(o: ILink): o is ILinkClass {
 	return o && !!(o as ILinkClass).templateName;
 }
 
@@ -712,7 +712,7 @@ function zipArr<T, G>(arr1: T[], arr2: G[]): [T, G][] {
 	console.log(json);
 };
 
-(global as any)._lastestLink = async function (input: string, templateName: string) {
+(global as any)._latestLink = async function (input: string, templateName: string) {
 	const link = await LinkContext.activeContext.load(LinkContext.activeContext.getTemplate(templateName), input);
 	await link.sync(true);
 	console.log(link);
