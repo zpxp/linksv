@@ -858,6 +858,17 @@ export class LinkTransaction {
 		}
 	}
 
+	/**
+	 * When importing a transaction from a tx hex, we need to set the input txs if we want to sign and publish
+	 * Iterate all inputs and load their txs
+	 */
+	async importTxMapFromApi() {
+		const result = await this.ctx.api.getBulkTx(this.txb.tx.txIns.map(x => Buffer.from(x.txHashBuf).reverse().toString()));
+		for (const [txid, tx] of Object.entries(result)) {
+			this.txb.uTxOutMap.setTx(tx);
+		}
+	}
+
 	private addInput(inLocation: string, fromAddr: string | Group, satoshis: number) {
 		const [location, currentOutputIndex] = inLocation.split("_", 2);
 		const outIdx = parseInt(currentOutputIndex, 10);
