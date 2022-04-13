@@ -40,6 +40,13 @@ describe("TemplateOwner", () => {
 		expect(Test.location).toEqual("0000000000000000000000000000000000000000000000000000000000000001_1");
 		expect(Test.satoshis).toEqual(ctx2.templateSatoshiValue);
 
+		if (ctx.api instanceof MockApi) {
+			// mock utxo
+			ctx.api.unspentUtxos[ctx2.owner.addressStr] = [
+				{ tx_pos: 2, tx_hash: "8888000000000000000000000000000000000000000000000000000000002220", value: ctx.templateSatoshiValue }
+			];
+		}
+
 		const tx2 = new LinkTransaction();
 		const inst = tx2.update(() => new Test());
 		await tx2.pay();
@@ -155,6 +162,13 @@ describe("TemplateOwner", () => {
 		const Test = makeClass();
 		tx.deploy(Test, ctx2.owner.addressStr);
 		await tx.publish();
+
+		if (ctx.api instanceof MockApi) {
+			// mock utxo
+			ctx.api.unspentUtxos[ctx2.owner.addressStr] = [
+				{ tx_pos: 2, tx_hash: "8888000000000000000000000000000000000000000000000000000000002220", value: ctx.templateSatoshiValue }
+			];
+		}
 
 		const tx2 = new LinkTransaction();
 		const inst = tx2.update(() => new Test());

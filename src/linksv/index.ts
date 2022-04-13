@@ -24,7 +24,6 @@ export { MockProvider } from "./providers/MockProvider";
 export { LinkSv } from "./Constants";
 export { deepCopy } from "./Utils";
 
-
 import { Address, Bn, KeyPair, Script, TxBuilder, Tx, Bw, Hash, OpCode } from "bsv";
 
 // bsv bug patching here
@@ -159,6 +158,44 @@ TxBuilder.prototype.estimateSize = function estimateSize() {
 		});
 	});
 
+	// size = size + sigSize * this.tx.txIns.length
+	size = size + 1; // assume txInsVi increases by 1 byte
+	return Math.round(size);
+};
+
+TxBuilder.prototype.estimateSize = function estimateSize() {
+	// largest possible sig size. final 1 is for pushdata at start. second to
+	// final is sighash byte. the rest are DER encoding.
+	const sigSize = 1 + 1 + 1 + 1 + 32 + 1 + 1 + 32 + 1 + 1;
+	// length of script, y odd, x value - assumes compressed public key
+	const pubKeySize = 1 + 1 + 33;
+
+	let size = this.tx.toBuffer().length;
+
+	if (!this.tx.txIns.length) {
+		// estimate size of single input
+		size += 300;
+	}
+
+	for (const txIn of this.tx.txIns) {
+		const { txHashBuf, txOutNum } = txIn;
+		const sigOperations = this.sigOperations.get(txHashBuf, txOutNum);
+		for (const sig of sigOperations) {
+			const { nScriptChunk, type } = sig;
+			if (txIn.script.chunks.length > 0 && txIn.script.chunks.length > nScriptChunk) {
+				const script = new Script([txIn.script.chunks[nScriptChunk]]);
+				const scriptSize = script.toBuffer().length;
+				size -= scriptSize;
+			}
+			if (type === "sig") {
+				size += sigSize;
+			} else if (sig.type === "pubKey") {
+				size += pubKeySize;
+			} else {
+				throw new Error("unsupported sig operations type");
+			}
+		}
+	}
 	// size = size + sigSize * this.tx.txIns.length
 	size = size + 1; // assume txInsVi increases by 1 byte
 	return Math.round(size);

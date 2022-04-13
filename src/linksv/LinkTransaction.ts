@@ -5,7 +5,7 @@ import { getUnderlying, proxyInstance } from "./InstanceProxy";
 import { Utxo } from "./IApiProvider";
 import { deepCopy, LinkRef } from "./Utils";
 import * as bsv from "bsv";
-import { TxOut, Bn, PubKey, OpCode, Address, Script } from "bsv";
+import { TxOut, Bn, PubKey, OpCode, Address, Script, TxIn, Tx } from "bsv";
 import { ProviderData } from "./ILinkProvider";
 
 export class LinkTransaction {
@@ -13,14 +13,55 @@ export class LinkTransaction {
 		return LinkContext.activeContext;
 	}
 	private txb: bsv.TxBuilder;
+	readonly external: boolean;
 	private lockTx: boolean;
 	private _lastTx: LinkTransaction;
 	private additionalOutputs: Array<{ toAddrStr: string; satoshis: number }> = [];
 
-	constructor(raw?: string | bsv.TxBuilderLike) {
+	constructor();
+	/**
+	 * Import value from `export()`. call `await ctx.import(...)` instead of this
+	 * @param txExport
+	 */
+	constructor(txExport: bsv.TxBuilderLike);
+	/**
+	 * Import raw tx hex export
+	 * @param txHex Standard tx hex export
+	 * @param linkReconstructor A function to reconstruct link prototypes. Return the correct link class based on the raw js object value.
+	 */
+	constructor(txHex: string, linkReconstructor?: (rawLink: object, input: TxIn) => Link);
+
+	constructor(raw?: string | bsv.TxBuilderLike, linkReconstructor?: (rawLink: object, input: TxIn) => Link) {
 		if (typeof raw === "string") {
-			this.txb = new bsv.TxBuilder(bsv.Tx.fromHex(raw));
 			this.lockTx = true;
+			this.external = true;
+			this.txb = new bsv.TxBuilder(bsv.Tx.fromHex(raw));
+			if (linkReconstructor) {
+				const chainRecord: ChainRecord = JSON.parse(this.ctx.compression.decompress(this.txb.tx.txOuts[0].script.getData()));
+				for (let index = 0; index < chainRecord.o.length; index++) {
+					const rawLink = chainRecord.o[index];
+					const inputIdx = chainRecord.i?.[index] ?? index;
+					const input = inputIdx >= 0 ? this.txb.tx.txIns[inputIdx] : null;
+					const output = this.txb.tx.txOuts[index + 1];
+					if (output && isPublicKeyHashOut(output.script)) {
+						rawLink.owner = Address.fromPubKeyHashBuf(output.script.chunks[2].buf).toString();
+					}
+					if (input) {
+						rawLink.location = Buffer.from(input.txHashBuf).reverse().toString("hex") + "_" + input.txOutNum;
+					}
+					const link = (chainRecord.o[index] = linkReconstructor(rawLink, input));
+					this._record(
+						input ? LinkRecord.CALL : LinkRecord.NEW,
+						"<import>",
+						proxyInstance(link),
+						deepCopy(link),
+						deepCopy(link),
+						link.constructor as ILinkClass,
+						[]
+					);
+					this.actions[this.actions.length - 1].outputIndex = index + 1;
+				}
+			}
 		} else if (raw) {
 			this.txb = bsv.TxBuilder.fromJSON(raw);
 			this.actions = raw.recordActions || [];
@@ -56,6 +97,10 @@ export class LinkTransaction {
 	 * Tx id for this transaction. Populated after a successful `publish()`
 	 */
 	txid: string;
+
+	get tx() {
+		return this.txb.tx;
+	}
 
 	/**
 	 * Link outputs
@@ -237,10 +282,39 @@ export class LinkTransaction {
 		}
 		// prevent any further modifications to this tx
 		this.lockTx = true;
-		if (!this.txb.tx.txOuts.length) {
+		if (this.external) {
+			// manual build
+			const outs = this.txb.buildOutputs();
+			this.txb.buildInputs(outs);
+		} else if (!this.txb.tx.txOuts.length) {
 			this.txb.build({ useAllInputs: true });
 		}
 		this.txb.signWithKeyPairs([bsv.KeyPair.fromPrivKey(this.ctx.purse.privateKey), bsv.KeyPair.fromPrivKey(this.ctx.owner.privateKey)]);
+	}
+
+	/**
+	 * When importing a tx, you may need to provide sigs before signing
+	 * @param inputTx tx being spent in this tx
+	 * @param addressStr address of signer
+	 * @param nHashType
+	 */
+	fillSigMap(inputTx: Tx, addressStr: string, nHashType?: number) {
+		const inputTxid = inputTx.hash();
+		const txIns = this.txb.tx.txIns.filter(x => x.txHashBuf.compare(inputTxid) === 0);
+		if (!txIns.length) {
+			throw new Error(`Txin for ${inputTxid.reverse().toString("hex")} not found`);
+		}
+		for (const txIn of txIns) {
+			const sigs = this.txb.sigOperations.get(txIn.txHashBuf, txIn.txOutNum);
+			if (!sigs.length) {
+				this.txb.addSigOperation(txIn.txHashBuf, txIn.txOutNum, 0, "sig", addressStr, nHashType);
+				this.txb.addSigOperation(txIn.txHashBuf, txIn.txOutNum, 1, "pubKey", addressStr);
+			}
+			if (!inputTx.txOuts[txIn.txOutNum]) {
+				throw new Error(`Output not found at index ${txIn.txOutNum} for given input tx`);
+			}
+			this.txb.uTxOutMap.set(txIn.txHashBuf, txIn.txOutNum, inputTx.txOuts[txIn.txOutNum]);
+		}
 	}
 
 	/**
@@ -444,7 +518,7 @@ export class LinkTransaction {
 			utxos = (await fetchUtxos.next()).value;
 
 			let utxo: Utxo;
-			while (((utxo = utxos.pop()), utxo)) {
+			while (((utxo = utxos.shift()), utxo)) {
 				// dont spend our link utxos
 				if (this.isValidPurseUtxo(utxo)) {
 					const outputScript = bsv.Script.fromPubKeyHash(payAddress.hashBuf);
@@ -489,6 +563,9 @@ export class LinkTransaction {
 	/** Build and lock the current transaction */
 	async build() {
 		this.lockTx = true;
+		if (this.external) {
+			return;
+		}
 		if (this.txb.txOuts.length) {
 			this.txb = new bsv.TxBuilder();
 		}
@@ -699,7 +776,9 @@ export class LinkTransaction {
 								owners:
 									link.owner instanceof Group
 										? link.owner.pubKeys.map(x => bsv.Address.fromPubKey(x).toString())
-										: [link.owner],
+										: link.owner
+										? [link.owner]
+										: [],
 								origin: link.origin,
 								// it was destroyed in this tx
 								destroyingTxid: txid
@@ -767,6 +846,16 @@ export class LinkTransaction {
 		}
 		const raw = this.txb.tx.toHex();
 		return raw;
+	}
+
+	/**
+	 * When importing a transaction from a tx hex, we need to set the input txs if we want to sign and publish
+	 * @param inputTxs Txs that belong to the imported input utxos
+	 */
+	importTxMap(inputTxs: Tx[]) {
+		for (const tx of inputTxs) {
+			this.txb.uTxOutMap.setTx(tx);
+		}
 	}
 
 	private addInput(inLocation: string, fromAddr: string | Group, satoshis: number) {
