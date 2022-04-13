@@ -863,7 +863,7 @@ export class LinkTransaction {
 	 * Iterate all inputs and load their txs
 	 */
 	async importTxMapFromApi() {
-		const result = await this.ctx.api.getBulkTx(this.txb.tx.txIns.map(x => Buffer.from(x.txHashBuf).reverse().toString()));
+		const result = await this.ctx.api.getBulkTx(this.txb.tx.txIns.map(x => Buffer.from(x.txHashBuf).reverse().toString("hex")));
 		for (const [txid, tx] of Object.entries(result)) {
 			this.txb.uTxOutMap.setTx(tx);
 		}
