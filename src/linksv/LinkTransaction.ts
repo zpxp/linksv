@@ -608,6 +608,16 @@ export class LinkTransaction {
 			);
 		}
 
+		/*
+
+		input utxo format is per index:
+		[N]?: link inputs
+		[N..M]?: template cosigs
+		[P + 1]: purse input utxo
+
+ 		*/
+
+		const pendingCosigInputs: Array<{ owner: string; location: string; satoshis: number }> = [];
 		const startLocations: string[] = [];
 		const mandatorySigsRequired: string[] = [];
 		// write each action utxos inputs
@@ -643,7 +653,11 @@ export class LinkTransaction {
 
 						mandatorySigsRequired.push(template.owner);
 						// spend the utxo back to the same owner address to make them sign
-						this.addInput(`${utxo.tx_hash}_${utxo.tx_pos}`, template.owner, utxo.value);
+						pendingCosigInputs.push({
+							owner: template.owner,
+							location: `${utxo.tx_hash}_${utxo.tx_pos}`,
+							satoshis: template.satoshis
+						});
 						cosigOutputs.push({ toAddrStr: template.owner, satoshis: template.satoshis });
 					}
 				}
@@ -661,17 +675,6 @@ export class LinkTransaction {
 				this.addInput(link.location, link.owner, link.satoshis);
 			}
 		}
-
-		/*
-
-		output utxo format is per index:
-		[0]: script
-		[1..N]?: link outputs
-		[N..M]?: template cosigs
-		[M..P]?: additional outputs, such as P2PKH
-		[P + 1]: change utxo
-
- 		*/
 
 		let txOutputIndex = 1; // +1 for script as first output
 		const pendingOutputs: Array<{ toAddrStr: string | Group; satoshis: number }> = [];
@@ -701,6 +704,22 @@ export class LinkTransaction {
 				txOutputIndex++;
 			}
 		}
+
+		// make sure these inputs are added after any link inputs
+		for (const cosigInput of pendingCosigInputs) {
+			this.addInput(cosigInput.location, cosigInput.owner, cosigInput.satoshis);
+		}
+
+		/*
+
+		output utxo format is per index:
+		[0]: script
+		[1..N]?: link outputs
+		[N..M]?: template cosigs
+		[M..P]?: additional outputs, such as P2PKH
+		[P + 1]: change utxo
+
+ 		*/
 
 		// now record the outputs in order
 		const script = this.createScript(startLocations, outputScript, destroyedLinks);
