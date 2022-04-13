@@ -93,6 +93,10 @@ export class LinkTransaction {
 		return this.lockTx;
 	}
 
+	get uTxOutMap() {
+		return this.txb.uTxOutMap;
+	}
+
 	/**
 	 * Tx id for this transaction. Populated after a successful `publish()`
 	 */

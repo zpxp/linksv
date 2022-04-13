@@ -108,7 +108,8 @@ TxBuilder.prototype.signWithKeyPairs = function signWithKeyPairs(this: TxBuilder
 				txIn.script.chunks.splice(nScriptChunk, 0, { opCodeNum: 0 });
 			}
 
-			if (txIn.script.chunks[nScriptChunk].buf?.byteLength) {
+			const sigBuff = txIn.script.chunks[nScriptChunk].buf;
+			if (sigBuff?.byteLength && Buffer.compare(sigBuff, Buffer.alloc(sigBuff.length, 0)) !== 0) {
 				// already signed
 				continue;
 			}
