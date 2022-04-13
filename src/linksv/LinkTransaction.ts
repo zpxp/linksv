@@ -318,6 +318,25 @@ export class LinkTransaction {
 	}
 
 	/**
+	 * When importing a tx, you may need to provide sigs before signing
+	 * @param inputIndex index of input utxo in this transaction
+	 * @param addressStr address of signer
+	 * @param nHashType
+	 */
+	fillSigMapFromIndex(inputIndex: number, addressStr: string, nHashType?: number) {
+		const txIn = this.txb.tx.txIns[inputIndex];
+		const inputTx = this.txb.uTxOutMap.get(txIn.txHashBuf, txIn.txOutNum);
+		if (!inputTx) {
+			throw new Error(`Input tx for ${Buffer.from(txIn.txHashBuf).reverse().toString("hex")} not found`);
+		}
+		const sigs = this.txb.sigOperations.get(txIn.txHashBuf, txIn.txOutNum);
+		if (!sigs.length) {
+			this.txb.addSigOperation(txIn.txHashBuf, txIn.txOutNum, 0, "sig", addressStr, nHashType);
+			this.txb.addSigOperation(txIn.txHashBuf, txIn.txOutNum, 1, "pubKey", addressStr);
+		}
+	}
+
+	/**
 	 * Sync locations and nonces of all links in this transaction but keep their current state and changes.
 	 * Arcane use only for if you need to force spend the latest link utxo
 	 */
