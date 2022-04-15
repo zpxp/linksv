@@ -296,6 +296,18 @@ export class LinkContext {
 					const rtn: LinkRef = { $: val.location, t: val[LinkSv.TemplateName] };
 					return rtn;
 				} else {
+					// serialize it with template name
+					val = Object.setPrototypeOf(
+						{ ...val, ["t~"]: (val.constructor as ILinkClass).templateName },
+						Object.getPrototypeOf(val)
+					);
+
+					if (val.forkOf && !val.location) {
+						// re-assign this to allow deserialization
+						val.location = val.forkOf;
+						val.forkOf = undefined;
+					}
+
 					if (!val.location && !this.allowSerializeNewLinks) {
 						throw new Error(
 							`Cannot serialize link without location. Publish transaction before trying to serialize or enable allowSerializeNewLinks. ${
@@ -303,11 +315,6 @@ export class LinkContext {
 							} ${val.location} ${val.owner} ${(val.constructor as ILinkClass).templateName}`
 						);
 					}
-					// serialize it with template name
-					val = Object.setPrototypeOf(
-						{ ...val, ["t~"]: (val.constructor as ILinkClass).templateName },
-						Object.getPrototypeOf(val)
-					);
 				}
 			}
 			if (val && val.constructor && val.constructor[Constants.ChainClass]) {
