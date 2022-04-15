@@ -10,8 +10,8 @@ import { ZLibCompression } from "./ZLibCompression";
 export class EciesCompression implements ICompression {
 	dataCompress: ICompression = new ZLibCompression();
 
-	compress(json: string): Buffer {
-		const compressed = this.dataCompress.compress(json);
+	compress(data: Buffer): Buffer {
+		const compressed = this.dataCompress.compress(data);
 		const encr = Ecies.electrumEncrypt(
 			compressed,
 			LinkContext.activeContext.owner.publicKey,
@@ -19,9 +19,9 @@ export class EciesCompression implements ICompression {
 		);
 		return encr;
 	}
-	decompress(data: Buffer[]): string {
-		const buf = data[data.length - 1];
-		const decrypt = Ecies.electrumDecrypt(buf, LinkContext.activeContext.owner.privateKey);
-		return this.dataCompress.decompress([decrypt]);
+
+	decompress(data: Buffer): Buffer {
+		const decrypt = Ecies.electrumDecrypt(data, LinkContext.activeContext.owner.privateKey);
+		return this.dataCompress.decompress(decrypt);
 	}
 }

@@ -45,6 +45,7 @@ export async function deepLink<T>(
 	ctx: LinkContext,
 	activeTx: LinkTransaction,
 	loadTx: (outputIdxOrLocation: number | string, templateType: string) => Promise<ILink>,
+	loadFile: (file: FileRef) => File,
 	addInstance: (link: Link) => Link
 ): Promise<T> {
 	if (!source) {
@@ -53,7 +54,7 @@ export async function deepLink<T>(
 	if (Array.isArray(source)) {
 		for (let index = 0; index < source.length; index++) {
 			const item = source[index];
-			source[index] = await deepLink(item, ctx, activeTx, loadTx, addInstance);
+			source[index] = await deepLink(item, ctx, activeTx, loadTx, loadFile, addInstance);
 		}
 		return source;
 	}
@@ -71,12 +72,14 @@ export async function deepLink<T>(
 			// is location
 			return (await loadTx(source.$, source.t)) as any;
 		}
+	} else if (isFileRef(source)) {
+		return loadFile(source) as any;
 	} else if (source && typeof source === "object") {
 		for (const prop of Object.getOwnPropertyNames(source)) {
 			const val = (source as any)[prop];
 			if (prop !== "preActionSnapshot" && prop !== "postActionSnapshot") {
 				// dont link the tx export snapshots
-				(source as any)[prop] = await deepLink(val, ctx, activeTx, loadTx, addInstance);
+				(source as any)[prop] = await deepLink(val, ctx, activeTx, loadTx, loadFile, addInstance);
 			}
 		}
 
@@ -100,6 +103,7 @@ export async function deepLink<T>(
 }
 
 export const deserializeLink = Symbol("__link");
+export const deserializeFile = Symbol("__file");
 
 export type LinkRef = {
 	[deserializeLink]?: boolean;
@@ -109,8 +113,21 @@ export type LinkRef = {
 	t: string;
 };
 
+export type FileRef = {
+	[deserializeFile]?: boolean;
+	/** output index */
+	$file: number;
+	name:string,
+	/** mime type */
+	type: string
+};
+
 function isLinkRef(o: any): o is LinkRef {
 	return o && typeof o === "object" && deserializeLink in o;
+}
+
+function isFileRef(o: any): o is FileRef {
+	return o && typeof o === "object" && deserializeFile in o;
 }
 
 export function chunk<T>(arr: T[], chunk: number): T[][] {

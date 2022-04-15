@@ -6,19 +6,13 @@ import { ICompression } from "../ICompression";
  * Compress data json on chain with zlib compression
  */
 export class ZLibCompression implements ICompression {
-	compress(json: string): Buffer {
-		return Buffer.from(pako.deflateRaw(json));
+	compress(data: Buffer): Buffer {
+		return Buffer.from(pako.deflateRaw(data));
 	}
-	decompress(data: Buffer[]): string {
-		const buf = data[data.length - 1];
-		const raw = buf.toString();
-		if (/^\{.*\}$|^\[.*\]$/.test(raw)) {
-			// is json
-			return raw;
-		} else {
-			// is compressed
-			const ui32 = new Uint8Array(buf, buf.byteOffset, buf.byteLength / Uint8Array.BYTES_PER_ELEMENT);
-			return pako.inflateRaw(ui32, { to: "string" });
-		}
+
+	decompress(data: Buffer): Buffer {
+		// is compressed
+		const ui32 = new Uint8Array(data, data.byteOffset, data.byteLength / Uint8Array.BYTES_PER_ELEMENT);
+		return Buffer.from(pako.inflateRaw(ui32));
 	}
 }

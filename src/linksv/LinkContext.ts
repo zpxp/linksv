@@ -6,7 +6,7 @@ import { getUnderlying, proxyInstance } from "./InstanceProxy";
 import { InstanceStore } from "./InstanceStore";
 import { ILink, ILinkClass, LINK_DUST, Link } from "./Link";
 import { ChainRecord, LinkTransaction } from "./LinkTransaction";
-import { deepLink, deserializeLink, LinkRef } from "./Utils";
+import { deepLink, deserializeFile, deserializeLink, LinkRef } from "./Utils";
 import { Constants, LinkSv } from "./Constants";
 import { IUtxoStore } from "./IUtxoStore";
 import { IndexedDbUtxoStore } from "./utxostores/IndexedDbUtxoStore";
@@ -194,8 +194,8 @@ export class LinkContext {
 				// return existing instance
 				return storeInst as R;
 			}
-			const { chainData, tx } = await this.getChainData(location);
-			let inst = await this.loadTx(template, location, chainData, tx);
+			const { chainData, tx, files } = await this.getChainData(location);
+			let inst = await this.loadTx(template, location, chainData, files, tx);
 			if (opts.trackInstances) {
 				inst = this.addInstance(inst) as R;
 			}
@@ -229,7 +229,9 @@ export class LinkContext {
 
 			const res = await this.getBulkChainData(missing.map(x => x.x.location));
 			const zipped = zipArr(res, missing);
-			const loaded = await Promise.all(zipped.map(x => this.loadTx(x[1].x.template, x[1].x.location, x[0].chainData, x[0].tx)));
+			const loaded = await Promise.all(
+				zipped.map(x => this.loadTx(x[1].x.template, x[1].x.location, x[0].chainData, x[0].files, x[0].tx))
+			);
 			if (opts.trackInstances) {
 				for (let index = 0; index < loaded.length; index++) {
 					const inst = loaded[index];
@@ -269,7 +271,7 @@ export class LinkContext {
 	 */
 	async getRawChainData(txid: string) {
 		const tx = await this.api.getTx(txid);
-		return this.processRawTx(tx);
+		return this.processRawTx(txid, tx);
 	}
 
 	async getBulkRawChainData(txids: string[]) {
@@ -278,7 +280,7 @@ export class LinkContext {
 				if (!tx || !txid) {
 					throw new Error(`Cannot find tx for one txid ${txid} `);
 				}
-				return [txid, this.processRawTx(tx)];
+				return [txid, this.processRawTx(txid, tx)];
 			})
 		);
 		return Object.fromEntries(txs);
@@ -292,6 +294,9 @@ export class LinkContext {
 	serialize(item: Link | Link[] | any) {
 		return JSON.stringify(item, (key, val) => {
 			if (val instanceof Link) {
+				if (val instanceof File) {
+					throw new Error(`Cannot json serialize a File`);
+				}
 				if (val[LinkSv.IsProxy] && val.location) {
 					const rtn: LinkRef = { $: val.location, t: val[LinkSv.TemplateName] };
 					return rtn;
@@ -366,6 +371,7 @@ export class LinkContext {
 					return this.loadDeferrer.loadDeferred(type, idxOrLocation);
 				}
 			},
+			() => null,
 			link => this.handleDirtyLink(link)
 		);
 
@@ -419,6 +425,7 @@ export class LinkContext {
 		link: T,
 		location: string,
 		chainData: ChainRecord,
+		files: Buffer[],
 		tx: bsv.Tx
 	): Promise<R> {
 		const [txid, output] = location.split("_", 2);
@@ -488,7 +495,7 @@ export class LinkContext {
 					if (existing) {
 						return existing;
 					}
-					const p = await this.loadTx(type, newLoca, chainData, tx);
+					const p = await this.loadTx(type, newLoca, chainData, files, tx);
 					return this.addInstance(p);
 				} else {
 					const existing = this.loadDeferrer?.get(idxOrLocation) || this.store.getLocation(idxOrLocation);
@@ -500,6 +507,10 @@ export class LinkContext {
 					}
 					return this.loadDeferrer.loadDeferred(type, idxOrLocation);
 				}
+			},
+			ref => {
+				const buffer = files[ref.$file];
+				return new File([buffer], ref.name, { type: ref.type });
 			},
 			link => this.handleDirtyLink(link)
 		);
@@ -520,7 +531,7 @@ export class LinkContext {
 		return p as R;
 	}
 
-	private processRawTx(tx: bsv.Tx) {
+	private processRawTx(txid: string, tx: bsv.Tx) {
 		const scriptOut = tx.txOuts.find(
 			x =>
 				x.valueBn.eq(0) &&
@@ -532,16 +543,30 @@ export class LinkContext {
 			throw new Error("Invalid tx in chain. No script data found " + tx.hash);
 		}
 
-		const raw = scriptOut.script.getData();
-		const json = this.compression.decompress(raw);
-		return { json, tx };
+		const chunks = scriptOut.script.chunks;
+		let buf = this.compression.decompress(chunks[chunks.length - 1].buf);
+		const offsets: number[] = JSON.parse(chunks[chunks.length - 2].buf?.toString("utf8") || null) || [];
+		const buffers: Buffer[] = [];
+		if (offsets.length) {
+			// split files and json
+			offsets.reduce((start, end) => {
+				buffers.push(buf.slice(start, start + end));
+				return end;
+			}, 0);
+		} else {
+			buffers.push(buf);
+		}
+		const json = buffers[0].toString("utf8");
+		const files = buffers.slice(1);
+
+		return { json, tx, files };
 	}
 
 	private async getChainData(location: string) {
 		const [txid, output] = location.split("_", 2);
-		const { json, tx } = await this.getRawChainData(txid);
+		const { json, tx, files } = await this.getRawChainData(txid);
 		const chainData = this.processRawChainData<ChainRecord>(json);
-		return { chainData, tx };
+		return { chainData, tx, files };
 	}
 
 	private async getBulkChainData(locations: string[]) {
@@ -552,9 +577,9 @@ export class LinkContext {
 			if (!txs[txid]) {
 				throw new Error(`Cannot find tx for location ${location}`);
 			}
-			const { tx, json } = txs[txid];
+			const { tx, json, files } = txs[txid];
 			const chainData = this.processRawChainData<ChainRecord>(json);
-			return { chainData, tx };
+			return { chainData, tx, files };
 		});
 	}
 
@@ -565,6 +590,11 @@ export class LinkContext {
 					const loca = val.$;
 					if (typeof loca === "string") {
 						return { ...val, [deserializeLink]: true };
+					}
+				} else if ("$file" in val) {
+					const file = val.$file;
+					if (typeof file === "number") {
+						return { ...val, [deserializeFile]: true };
 					}
 				}
 				if ("~" in val) {

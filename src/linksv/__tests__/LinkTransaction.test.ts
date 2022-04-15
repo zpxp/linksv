@@ -30,11 +30,13 @@ describe("Link Transaction", () => {
 			o: [new TestLink()]
 		};
 
-		const data = ctx.compression.compress(JSON.stringify(chainRec));
+		const data = ctx.compression.compress(Buffer.from(JSON.stringify(chainRec)));
 		const script = new Script();
 		script.writeOpCode(OpCode.OP_FALSE);
 		script.writeOpCode(OpCode.OP_RETURN);
 		script.writeBuffer(Buffer.from(ctx.app));
+		// blank header, no files
+		script.writeBuffer(Buffer.alloc(0));
 		script.writeBuffer(data);
 
 		txb.outputToScript(new Bn(0), script);
@@ -97,11 +99,13 @@ describe("Link Transaction", () => {
 			o: [new TestLink(), inst]
 		};
 
-		const data = ctx.compression.compress(JSON.stringify(chainRec));
+		const data = ctx.compression.compress(Buffer.from(JSON.stringify(chainRec)));
 		const script = new Script();
 		script.writeOpCode(OpCode.OP_FALSE);
 		script.writeOpCode(OpCode.OP_RETURN);
 		script.writeBuffer(Buffer.from(ctx.app));
+		// blank header, no files
+		script.writeBuffer(Buffer.alloc(0));
 		script.writeBuffer(data);
 
 		// script output

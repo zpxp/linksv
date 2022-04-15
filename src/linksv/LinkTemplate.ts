@@ -1,8 +1,8 @@
-import { LinkContext, LinkTransaction } from ".";
 import { Constants } from "./Constants";
 import { proxyInstance } from "./InstanceProxy";
 import { ILinkClass, Link } from "./Link";
-import { LinkRecord } from "./LinkTransaction";
+import { LinkRecord, LinkTransaction } from "./LinkTransaction";
+import { LinkContext } from "./LinkContext";
 
 export function LinkTemplate(uniqueName: string) {
 	return function Wrap<T extends object>(c: T): T {

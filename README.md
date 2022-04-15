@@ -12,6 +12,7 @@ Each class instance that is written to chain is called a link and the class defi
 - First class data transaction management
 - Link templates enforce data contracts
 - Node and browser compatible
+- `File` support; write any type of file to chain
 - NPM package
 - Works with modern build tools such as Babel and Typescript
 - No restrictions placed on what can be inside your link classes - use native code, `for in` loops, `Math.random()` etc.
@@ -94,9 +95,9 @@ export class Sword extends Link {
 // Sword = LinkTemplate("Sword")(Sword);
 
 const tx = new LinkTransaction()
-const swordInstance = tx.update(() => new Sword("cool sword"));
-tx.update(() => swordInstance.changeName("gg"));
-expect(swordInstance.name).toEqual("gg");
+const swordInstance = tx.update(() => new Sword("sword"));
+tx.update(() => swordInstance.changeName("cool sword"));
+expect(swordInstance.name).toEqual("cool sword");
 expect(swordInstance.owner).toEqual(ownerAddr);
 expect(tx.outputs.length).toEqual(1);
 const txid = await tx.publish();
@@ -108,7 +109,33 @@ To load a location from chain:
 
 ```ts
 const swordInstance = await ctx.load(Sword, locationToLoadStr);
+expect(swordInstance.name).toEqual("cool sword");
 ```
+
+### Files
+
+To save a file to chain, create a link with any property that stores a javascript `File` object. Then, publish that link like any other.
+```ts
+@LinkTemplate("LinkWithFile")
+class LinkWithFile extends Link {
+	myFile: File;
+	constructor(file: File) {
+		super();
+		this.myFile = file;
+	}
+}
+
+const filebuf = await loadFile();
+const inst = tx.update(() => new LinkWithFile(new File([filebuf], "image.png", { type: "image/png" })));
+await tx.publish();
+const location = inst.location;
+
+//then to load the file...
+const fileLink: LinkWithFile = await ctx.load(LinkWithFile, location)
+console.log(fileLink.myFile);
+```
+
+### Template Owner
 
 To give a template an owner, requiring that owner to sign whenever a new instance of a link is constructed, call `tx.deploy(LinkClass, ownerAddrStr)` then `tx.publish()`. See [template owner tests](src/linksv/__tests__/TemplateOwner.test.ts) for more info.
 

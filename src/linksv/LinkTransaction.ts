@@ -37,7 +37,14 @@ export class LinkTransaction {
 			this.external = true;
 			this.txb = new bsv.TxBuilder(bsv.Tx.fromHex(raw));
 			if (linkReconstructor) {
-				const chainRecord: ChainRecord = JSON.parse(this.ctx.compression.decompress(this.txb.tx.txOuts[0].script.getData()));
+				const chunks = this.txb.tx.txOuts[0].script.chunks;
+				let buf = this.ctx.compression.decompress(chunks[chunks.length - 1].buf);
+				const offsets: number[] = JSON.parse(chunks[chunks.length - 2].buf?.toString("utf8") || null) || [];
+				if (offsets.length) {
+					// slice json segment
+					buf = buf.slice(0, offsets[0]);
+				}
+				const chainRecord: ChainRecord = JSON.parse(buf.toString("utf8"));
 				for (let index = 0; index < chainRecord.o.length; index++) {
 					const rawLink = chainRecord.o[index];
 					const inputIdx = chainRecord.i?.[index] ?? index;
@@ -775,7 +782,7 @@ export class LinkTransaction {
  		*/
 
 		// now record the outputs in order
-		const script = this.createScript(startLocations, outputScript, destroyedLinks);
+		const script = await this.createScript(startLocations, outputScript, destroyedLinks);
 		this.txb.outputToScript(new Bn(0), script);
 
 		for (const outp of pendingOutputs) {
@@ -1017,7 +1024,7 @@ export class LinkTransaction {
 		}
 	}
 
-	private createScript(startLocations: string[], uniqueEnds: ILink[], destroyedLinks: ILink[]) {
+	private async createScript(startLocations: string[], uniqueEnds: ILink[], destroyedLinks: ILink[]) {
 		const record: ChainRecord = {
 			i:
 				startLocations.length === uniqueEnds.length
@@ -1037,6 +1044,8 @@ export class LinkTransaction {
 			record.i = undefined;
 		}
 
+		const files: File[] = [];
+
 		const json = JSON.stringify(record, (key, val) => {
 			if (val instanceof Link && val[LinkSv.IsProxy]) {
 				if (val.isDestroyed) {
@@ -1048,10 +1057,16 @@ export class LinkTransaction {
 					if (!action.outputIndex) {
 						throw new Error(`No output index for ${val[LinkSv.TemplateName]} ${val}`);
 					}
-					const rtn: LinkRef = { $: "_" + action.outputIndex, t: val[LinkSv.TemplateName] };
+					const rtn: LinkRef = {
+						$: "_" + action.outputIndex,
+						t: val[LinkSv.TemplateName]
+					};
 					return rtn;
 				} else if (val.location) {
-					const rtn: LinkRef = { $: val.location, t: val[LinkSv.TemplateName] };
+					const rtn: LinkRef = {
+						$: val.location,
+						t: val[LinkSv.TemplateName]
+					};
 					return rtn;
 				}
 				throw new Error(
@@ -1063,6 +1078,10 @@ export class LinkTransaction {
 			}
 			if (this.ctx.serializeTransformer) {
 				val = this.ctx.serializeTransformer(key, val);
+			}
+			if (val instanceof File) {
+				files.push(val);
+				val = { $file: files.length - 1, name: val.name, type: val.type };
 			}
 			if (val === null) {
 				return undefined;
@@ -1093,13 +1112,17 @@ export class LinkTransaction {
 			return val;
 		});
 
-		const data = LinkContext.activeContext.compression.compress(json);
+		const fileBufs = await Promise.all(files.map(x => blobToArrayBuffer(x)));
+		const bufs = [Buffer.from(json), ...fileBufs.map(x => Buffer.from(x))];
+		const data = LinkContext.activeContext.compression.compress(Buffer.concat(bufs));
 		const script = new bsv.Script();
 		script.writeOpCode(bsv.OpCode.OP_FALSE);
 		script.writeOpCode(bsv.OpCode.OP_RETURN);
 		if (LinkContext.activeContext.app) {
 			script.writeBuffer(Buffer.from(LinkContext.activeContext.app));
 		}
+		// write offset header
+		script.writeBuffer(fileBufs.length ? Buffer.from(JSON.stringify(bufs.map(x => x.length))) : Buffer.alloc(0));
 		script.writeBuffer(data);
 		return script;
 	}
@@ -1219,4 +1242,17 @@ function checkUntrackedLink(action: RecordAction, ctx: LinkContext) {
 		instance.nonce = 0;
 		action.linkProxy = proxyInstance(instance);
 	}
+}
+
+async function blobToArrayBuffer(blob: Blob) {
+	if ("arrayBuffer" in blob) {
+		return await blob.arrayBuffer();
+	}
+
+	return new Promise<ArrayBuffer>((resolve, reject) => {
+		const reader = new FileReader();
+		reader.onload = () => resolve(reader.result as ArrayBuffer);
+		reader.onerror = () => reject;
+		reader.readAsArrayBuffer(blob);
+	});
 }
