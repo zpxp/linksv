@@ -1,10 +1,20 @@
 import { Link, LinkTransaction, LinkSv, LinkTemplate, ZLibCompression, NoCompression, EciesCompression } from "..";
+import { GZipCompression } from "../compression/GZipCompression";
 import { prepare } from "./Prepare.notest";
 import { Sword } from "./Sword.notest";
 
 describe("Compression", () => {
 	test("Should work with compression", async () => {
 		const { tx, ctx } = prepare({ compression: new ZLibCompression() });
+
+		tx.update(() => new Sword("cool sword"));
+		const txid = await tx.publish();
+		const { json } = await ctx.getRawChainData(txid);
+		expect(json).toEqual('{"i":[-1],"o":[{"name":"cool sword","nonce":1}]}');
+	});
+
+	test("Should work with gzip compression", async () => {
+		const { tx, ctx } = prepare({ compression: new GZipCompression() });
 
 		tx.update(() => new Sword("cool sword"));
 		const txid = await tx.publish();

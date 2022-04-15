@@ -9,6 +9,7 @@ export { Link, LINK_DUST } from "./Link";
 export type { ILinkClass, ILink } from "./Link";
 export type { ICompression } from "./ICompression";
 export { ZLibCompression } from "./compression/ZLibCompression";
+export { GZipCompression } from "./compression/GZipCompression";
 export { EciesCompression } from "./compression/EciesCompression";
 export { NoCompression } from "./compression/NoCompression";
 export { Group } from "./Group";
