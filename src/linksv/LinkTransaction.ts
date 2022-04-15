@@ -1039,7 +1039,7 @@ export class LinkTransaction {
 			record.i = undefined;
 		}
 
-		const files: File[] = [];
+		const files: (File | Buffer)[] = [];
 
 		const json = JSON.stringify(record, (key, val) => {
 			if (val instanceof Link && val[LinkSv.IsProxy]) {
@@ -1074,9 +1074,13 @@ export class LinkTransaction {
 			if (this.ctx.serializeTransformer) {
 				val = this.ctx.serializeTransformer(key, val);
 			}
-			if (val instanceof File) {
+			if (typeof File !== "undefined" && val instanceof File) {
 				files.push(val);
 				val = { $file: files.length - 1, name: val.name, type: val.type };
+			}
+			if (Buffer.isBuffer(val)) {
+				files.push(val);
+				val = { $buf: files.length - 1 };
 			}
 			if (val === null) {
 				return undefined;
@@ -1107,7 +1111,7 @@ export class LinkTransaction {
 			return val;
 		});
 
-		const fileBufs = await Promise.all(files.map(x => blobToArrayBuffer(x)));
+		const fileBufs = await Promise.all(files.map(x => (Buffer.isBuffer(x) ? x : blobToArrayBuffer(x))));
 		const bufs = [Buffer.from(json), ...fileBufs.map(x => Buffer.from(x))];
 		const data = LinkContext.activeContext.compression.compress(Buffer.concat(bufs));
 		const script = new bsv.Script();

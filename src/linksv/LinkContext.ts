@@ -294,8 +294,8 @@ export class LinkContext {
 	serialize(item: Link | Link[] | any) {
 		return JSON.stringify(item, (key, val) => {
 			if (val instanceof Link) {
-				if (val instanceof File) {
-					throw new Error(`Cannot json serialize a File`);
+				if (Buffer.isBuffer(val) || (typeof File !== "undefined" && val instanceof File)) {
+					throw new Error(`Cannot json serialize a File or Buffer`);
 				}
 				if (val[LinkSv.IsProxy] && val.location) {
 					const rtn: LinkRef = { $: val.location, t: val[LinkSv.TemplateName] };
@@ -509,8 +509,13 @@ export class LinkContext {
 				}
 			},
 			ref => {
-				const buffer = files[ref.$file];
-				return new File([buffer], ref.name, { type: ref.type });
+				if (typeof File !== "undefined" && "$file" in ref) {
+					const buffer = files[ref.$file];
+					return new File([buffer], ref.name, { type: ref.type });
+				}
+
+				const buffer = files["$file" in ref ? ref.$file : ref.$buf];
+				return buffer;
 			},
 			link => this.handleDirtyLink(link)
 		);

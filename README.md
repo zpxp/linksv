@@ -12,7 +12,7 @@ Each class instance that is written to chain is called a link and the class defi
 - First class data transaction management
 - Link templates enforce data contracts
 - Node and browser compatible
-- `File` support; write any type of file to chain
+- `File` and `Buffer` support; write any type of file to chain
 - NPM package
 - Works with modern build tools such as Babel and Typescript
 - No restrictions placed on what can be inside your link classes - use native code, `for in` loops, `Math.random()` etc.
@@ -114,7 +114,7 @@ expect(swordInstance.name).toEqual("cool sword");
 
 ### Files
 
-To save a file to chain, create a link with any property that stores a javascript `File` object. Then, publish that link like any other.
+To save a file to chain, create a link with any property that stores a javascript `File` object. Then, publish that link like any other. In node js, use `Buffer` instead of `File`.
 ```ts
 @LinkTemplate("LinkWithFile")
 class LinkWithFile extends Link {
