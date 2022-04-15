@@ -135,7 +135,7 @@ const fileLink: LinkWithFile = await ctx.load(LinkWithFile, location)
 console.log(fileLink.myFile);
 ```
 
-For best practices with files, it is recommended to wrap them in a link, then store that link in your main link class. This is because, any nested links are serialized to chain as a pointer, so any changes you make to 
+For best practices with files, it is recommended to wrap them in a link, then store that link in your main link class. This is because any nested links are serialized to chain as a pointer, so changes you make to 
 your parent link won't result in the file being written to chain more than once. You can use the built in `FileLink` to wrap your files and buffers for this purpose.
 
 ### Template Owner
