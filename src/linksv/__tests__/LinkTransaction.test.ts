@@ -1,4 +1,4 @@
-import { Script, Tx, TxBuilder, Constants, Bn, OpCode, KeyPair, TxOut, TxVerifier, Interp } from "bsv";
+import { Script, Tx, TxBuilder, Constants, Bn, OpCode, KeyPair, TxOut, TxVerifier, Interp, Address, PrivKey, PubKey } from "bsv";
 import { Link, LinkSv, LinkTransaction, MockProvider } from "..";
 import { MockApi } from "../apis/MockApi";
 import { LinkTemplate } from "../LinkTemplate";
@@ -242,9 +242,37 @@ describe("Link Transaction", () => {
 
 		const inst = tx.update(() => new Sword("cool sword"));
 		const newTx = new LinkTransaction();
-		newTx.fork(tx.outputs as Link[])
+		newTx.fork(tx.outputs as Link[]);
 		await newTx.publish();
 		expect(inst.location).toBe("0000000000000000000000000000000000000000000000000000000000000001_1");
 		expect(inst.origin).toBe("0000000000000000000000000000000000000000000000000000000000000001_1");
+	});
+
+	test("Should fork and not make input", async () => {
+		const purse = PrivKey.fromRandom();
+		let { ctx, tx } = prepare({
+			purse,
+			api: new MockApi(true, {
+				[Address.fromPubKey(PubKey.fromPrivKey(purse)).toString()]: [
+					// only use a single purse utxo so final tx inputs are 1
+					{ tx_pos: 1, tx_hash: "0000000000000000000000000000000000000000000000000000000000000000", value: 88888 }
+				]
+			})
+		});
+
+		const inst = tx.update(() => new Sword("cool sword"));
+		await tx.publish();
+		expect(inst.location).toBe("0000000000000000000000000000000000000000000000000000000000000001_1");
+
+		tx = new LinkTransaction();
+		tx.update(() => inst.changeName("name1"));
+		tx.fork();
+		const txid = await tx.publish();
+		expect(inst.location).toBe("0000000000000000000000000000000000000000000000000000000000000002_1");
+		expect(inst.nonce).toBe(2);
+
+		const { json, tx: chainTx } = await ctx.getRawChainData(txid);
+		expect(chainTx.txIns.length).toBe(1);
+		expect(chainTx.txOuts.length).toBe(3);
 	});
 });

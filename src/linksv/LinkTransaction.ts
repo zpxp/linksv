@@ -404,13 +404,23 @@ export class LinkTransaction {
 		}
 		for (const link of links) {
 			if (link.location) {
+				this.actions = this.actions.filter(x => x.linkProxy !== link);
 				const state = getUnderlying(link);
 				state.forkOf = state.location;
 				state.location = null;
 				this._record(LinkRecord.FORK, "<fork>", link, null, state, link.constructor as ILinkClass, []);
 			} else {
+				this.actions = this.actions.filter(x => x.linkProxy !== link);
 				// is new link, just copy it over
-				this._record(LinkRecord.NEW, link[LinkSv.TemplateName], link, null, getUnderlying(link), link.constructor as ILinkClass, []);
+				this._record(
+					LinkRecord.NEW,
+					link[LinkSv.TemplateName],
+					link,
+					null,
+					getUnderlying(link),
+					link.constructor as ILinkClass,
+					[]
+				);
 			}
 		}
 	}
