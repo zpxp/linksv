@@ -8,7 +8,7 @@ import { ZLibCompression } from "./ZLibCompression";
  * Only this owner can read the data from chain with `LinkContext.load()`
  */
 export class EciesCompression implements ICompression {
-	dataCompress = new ZLibCompression();
+	dataCompress: ICompression = new ZLibCompression();
 
 	compress(json: string): Buffer {
 		const compressed = this.dataCompress.compress(json);

@@ -135,5 +135,12 @@ To see what endpoints are provided by the backend, run in debug mode and visit t
 ## How it works
 Link SV tracks changes to link instances and serializes those changes to chain on `tx.publish()`. Data is compressed so large amounts of data can be written while maintaining cheap transaction fees. New link locations are automatically recorded in the backend provider so blockchain indexing is not required.
 
+## Compression
+Compression modes supported are:
+- ZLib
+- GZip
+- ECIES (private encrypted data written to chain)
+- Raw json (no compression)
+
 ## Note
 The `LinkContext.utxoStore` in the browser defaults to indexed DB, but defaults to an in memory only implementation in nodejs. If you need to persist your purse utxos across sessions, implement a persistent `IUtxoStore` and pass to `LinkContext` constructor. 
