@@ -2,10 +2,17 @@ import { PrivKey, Address, PubKey } from "bsv";
 import { LinkContext, MockProvider, MockApi, MockUtxoStore, LinkTransaction, IApiProvider, ILinkProvider, ICompression } from "..";
 
 export function prepare(
-	opts: { api?: IApiProvider; provider?: ILinkProvider; serialUntracked?: boolean; compression?: ICompression; purse?: PrivKey } = {}
+	opts: {
+		api?: IApiProvider;
+		provider?: ILinkProvider;
+		serialUntracked?: boolean;
+		compression?: ICompression;
+		purse?: PrivKey;
+		owner?: PrivKey;
+	} = {}
 ) {
 	const pursePk = opts.purse || PrivKey.fromRandom();
-	const ownerPk = PrivKey.fromRandom();
+	const ownerPk = opts.owner || PrivKey.fromRandom();
 	const ownerPub = PubKey.fromPrivKey(ownerPk);
 	const ownerAddr = Address.fromPubKey(ownerPub);
 

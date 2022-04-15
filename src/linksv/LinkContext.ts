@@ -374,6 +374,16 @@ export class LinkContext {
 	}
 
 	/**
+	 * Remove all links from the instance store with the same origin as the given link
+	 * @param link
+	 */
+	purge(link: Link) {
+		for (let inst = this.store.getOrigin(link.origin); inst; inst = this.store.getOrigin(link.origin)) {
+			this.store.remove(inst);
+		}
+	}
+
+	/**
 	 * Record link's location and nonce with the provider. This is called automatically on publish but maybe
 	 * you wish to import another client's link
 	 * @param link

@@ -19,6 +19,7 @@ export type ProviderData = {
 	origin: string;
 	location: string;
 	nonce: number;
+	forkOf: string
 	owners: string[];
 	linkName: string;
 	destroyingTxid: string

@@ -130,4 +130,27 @@ public class BasicTests
 		Assert.Equal(link.LinkName, responseLink.LinkName);
 		Assert.Equal(responseLink.DestroyingTxid, null);
 	}
+
+	[Theory]
+	[InlineData("/api/link/location")]
+	public async Task PostLocationFork(string url)
+	{
+		// Arrange
+		var client = _factory.CreateClient();
+
+		// Act
+		var content = new StringContent(JsonSerializer.Serialize(new LinkLocationContract
+		{
+			Location = "e28c840a46bc3a9154a4b1e8f4dd7531ad399b9b41ef7ce27f941065a23e87ba_1",
+			Origin = "2bbdf2c541fd3f01df1fd0f9ac2fceb130ce9ae92b2309286f84d407648fba74_1",
+			Nonce = 3,
+			LinkName = "Test",
+			ForkOf = "2bbdf2c541fd3f01df1fd0f9ac2fceb130ce9ae92b2309286f84d407648fba74_1",
+			Owners = new List<string> { "mpeRNN2saTDQbR2aC6Psu7pv6kDs9WjjP1" }
+		}), Encoding.UTF8, "application/json");
+		var response = await client.PostAsync(url, content);
+
+		// Assert
+		Assert.Equal(response.StatusCode, HttpStatusCode.NoContent);
+	}
 }

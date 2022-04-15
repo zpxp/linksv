@@ -165,4 +165,65 @@ describe("Link Transaction", () => {
 			// note the destroyed link is not sent here. must be dealt with manually
 		]);
 	});
+
+	test("Should fork spent link", async () => {
+		let { tx, ctx } = prepare();
+
+		const inst = tx.update(() => new Sword("cool sword"));
+		await tx.publish();
+		expect(inst.location).toBe("0000000000000000000000000000000000000000000000000000000000000001_1");
+
+		tx = new LinkTransaction();
+		tx.update(() => inst.changeName("name1"));
+		await tx.publish();
+		expect(inst.location).toBe("0000000000000000000000000000000000000000000000000000000000000002_1");
+		expect(inst.nonce).toBe(2);
+
+		tx = new LinkTransaction();
+		tx.update(() => inst.changeName("name2"));
+		await tx.publish();
+		expect(inst.location).toBe("0000000000000000000000000000000000000000000000000000000000000003_1");
+		expect(inst.nonce).toBe(3);
+
+		// remove its instance so we can load an old value
+		ctx.purge(inst);
+
+		const loaded = await ctx.load(Sword, "0000000000000000000000000000000000000000000000000000000000000002_1");
+		expect(loaded.location).toBe("0000000000000000000000000000000000000000000000000000000000000002_1");
+		expect(loaded.owner).toBe(ctx.owner.addressStr);
+
+		// fork an old location
+		tx = new LinkTransaction();
+		tx.fork(loaded);
+		expect(loaded.location).toBe(null);
+		expect(loaded.forkOf).toBe("0000000000000000000000000000000000000000000000000000000000000002_1");
+		expect(loaded.nonce).toBe(2);
+		tx.update(() => loaded.changeName("name3"));
+		const txid = await tx.publish();
+		expect(loaded.location).toBe("0000000000000000000000000000000000000000000000000000000000000004_1");
+		expect(loaded.nonce).toBe(3);
+		const { json, tx: chainTx } = await ctx.getRawChainData(txid);
+		expect(chainTx.txIns.length).toBe(1);
+		expect(chainTx.txOuts.length).toBe(3);
+		expect(json).toBe(
+			'{"i":[-1],"o":[{"origin":"0000000000000000000000000000000000000000000000000000000000000001_1","name":"name3","nonce":3,"forkOf":"0000000000000000000000000000000000000000000000000000000000000002_1"}]}'
+		);
+
+		tx = new LinkTransaction();
+		tx.update(() => loaded.changeName("name4"));
+		const txid2 = await tx.publish();
+		expect(loaded.location).toBe("0000000000000000000000000000000000000000000000000000000000000005_1");
+		expect(loaded.forkOf).toBeFalsy();
+		expect(loaded.nonce).toBe(4);
+
+		const { json: json2, tx: chainTx2 } = await ctx.getRawChainData(txid2);
+		expect(chainTx2.txIns.length).toBe(2);
+		expect(chainTx2.txOuts.length).toBe(3);
+		expect(Buffer.from(chainTx2.txIns[0].txHashBuf).reverse().toString("hex")).toBe(
+			"0000000000000000000000000000000000000000000000000000000000000004"
+		);
+		expect(json2).toBe(
+			'{"o":[{"origin":"0000000000000000000000000000000000000000000000000000000000000001_1","name":"name4","nonce":4}]}'
+		);
+	});
 });

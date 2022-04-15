@@ -17,14 +17,14 @@ export abstract class Link {
 	 * and spend it back to the same address. Call `LinkTransaction.deploy(...)` to create a utxo
 	 * for that address.
 	 */
-	static owner: string = "";
+	static owner: string;
 	/**
 	 * Location of deploying utxo for this template. Deploying a template is not required in order to
 	 * force owner signature.
 	 */
-	static location: string = "";
+	static location: string;
 	static nonce: number = 0;
-	static satoshis: number = null;
+	static satoshis: number;
 	/**
 	 * Name of the template assigned with `@LinkTemplate` decorator.
 	 */
@@ -61,6 +61,10 @@ export abstract class Link {
 	 * If the link is destroyed, the format is <destroying txid>_0
 	 */
 	location: string;
+	/**
+	 * When forked, `location` is set to null and this is set to the location of the link being forked.
+	 */
+	declare forkOf: string;
 	nonce: number;
 	satoshis: number;
 	owner: Group | string;

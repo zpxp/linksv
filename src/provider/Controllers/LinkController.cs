@@ -124,4 +124,11 @@ public class LinkLocationContract
 	/// </summary>
 	/// <value></value>
 	public string? DestroyingTxid { get; set; }
+
+	/// <summary>
+	/// Location of link that this location is forked from
+	/// </summary>
+	/// <value></value>
+	public string? ForkOf { get; set; }
+
 }

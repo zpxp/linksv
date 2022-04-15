@@ -342,7 +342,7 @@ export class LinkTransaction {
 
 	/**
 	 * Sync locations and nonces of all links in this transaction but keep their current state and changes.
-	 * Arcane use only for if you need to force spend the latest link utxo
+	 * Arcane use only for if you need to force spend the latest link utxo recorded in the provider
 	 */
 	async syncLocations() {
 		if (this.lockTx) {
@@ -370,6 +370,43 @@ export class LinkTransaction {
 					action.inputLocation = latest.location;
 				}
 			}
+		}
+	}
+
+	/**
+	 * Fork a link, meaning a new utxo output is created for it and its current location is ignored when creating the transaction.
+	 * This is the equivalent of creating a new link with all the previous history of an existing link, regardless of if the current
+	 * location has been spent or not. Because any previously spent link can be forked, all forked links are inherently untrustworthy
+	 * when forking links that have deployed templates. For links without template owners, or if trust is not required, this issue is irrelevant.
+	 * @param link
+	 */
+	fork(link: Link): void;
+	/**
+	 * Fork all given links
+	 * @param links
+	 */
+	fork(links: Link[]): void;
+	/**
+	 * Fork all links present in this transaction
+	 */
+	fork(): void;
+	fork(links?: Link | Link[]) {
+		if (this.lockTx) {
+			throw new Error("Transaction locked");
+		}
+		if (!links) {
+			links = Array.from(
+				new Set(this.actions.filter(x => x.linkProxy instanceof Link && !!x.linkProxy.location).map(x => x.linkProxy as Link))
+			);
+		}
+		if (!Array.isArray(links)) {
+			links = [links];
+		}
+		for (const link of links) {
+			const state = getUnderlying(link);
+			state.forkOf = state.location;
+			state.location = null;
+			this._record(LinkRecord.FORK, "<fork>", link, null, state, link.constructor as ILinkClass, []);
 		}
 	}
 
@@ -623,9 +660,10 @@ export class LinkTransaction {
 		// write each action utxos inputs
 		for (const [link, actions] of Array.from(uniqueStartLinks)) {
 			if (!link?.location) {
+				const hasFork = actions.some(x => x.type === LinkRecord.FORK);
 				const hasNew = actions.some(x => x.type === LinkRecord.NEW);
 				const hasDeploy = actions.some(x => x.type === LinkRecord.DEPLOY);
-				if (!hasNew && !hasDeploy) {
+				if (!hasNew && !hasDeploy && !hasFork) {
 					throw new Error(
 						`Link does not have a location and it wasn't created in this transaction ${link.owner} ${actions[0].target} ${link}`
 					);
@@ -776,34 +814,41 @@ export class LinkTransaction {
 						.filter(x => !!x)
 						.join(" ")
 			);
+			const uniqueLinks = new Map(this.actions.map(x => [x.linkProxy, this.actions.filter(f => f.linkProxy === x.linkProxy)]));
+			const updateMap = new Map<string, ProviderData>();
+
 			const raw = this.txb.tx.toHex();
 			const txid = await this.ctx.api.broadcast(raw);
 			this.txid = txid;
 
-			const updateMap = new Map<string, ProviderData>();
 			try {
 				// write location
-				for (const action of this.actions) {
+				for (const [link, actions] of uniqueLinks) {
+					// write the last change to provider
+					const action = actions[actions.length - 1];
 					if (!action.linkProxy.isDestroyed) {
 						const underlying = getUnderlying(action.linkProxy);
 						underlying.location = `${txid}_${action.outputIndex}`;
 						underlying.nonce++;
-						if (action.type === LinkRecord.NEW) {
+						// if the first action was new or deploy we need to set origin
+						if (actions[0].type === LinkRecord.NEW || actions[0].type === LinkRecord.DEPLOY) {
 							(underlying as Link).origin = `${txid}_${action.outputIndex}`;
 						}
-						if (action.linkProxy instanceof Link) {
-							const link = action.linkProxy;
-							updateMap.set(link.origin, {
-								location: link.location,
-								nonce: link.nonce,
+						if (underlying instanceof Link) {
+							updateMap.set(underlying.origin, {
+								location: underlying.location,
+								forkOf: underlying.forkOf,
+								nonce: underlying.nonce,
 								linkName: link[LinkSv.TemplateName],
 								owners:
 									link.owner instanceof Group
 										? link.owner.pubKeys.map(x => bsv.Address.fromPubKey(x).toString())
 										: [link.owner],
-								origin: link.origin,
+								origin: underlying.origin,
 								destroyingTxid: undefined
 							});
+							// clear this as it is now written to chain and we have a new nonce
+							underlying.forkOf = undefined;
 						}
 					} else if (action.linkProxy instanceof Link) {
 						// tell provider it is destroyed linkProxy state may be null
@@ -814,6 +859,7 @@ export class LinkTransaction {
 							updateMap.set(link.origin, {
 								location: link.location,
 								nonce: link.nonce,
+								forkOf: undefined,
 								linkName: action.linkProxy[LinkSv.TemplateName],
 								owners:
 									link.owner instanceof Group
@@ -1090,6 +1136,7 @@ export class LinkTransaction {
 
 export enum LinkRecord {
 	NEW = "NEW",
+	FORK = "FORK",
 	DEPLOY = "DEPLOY",
 	CALL = "CALL"
 }
