@@ -106,7 +106,7 @@ export function proxyInstance<T extends object | Func>(inst: T, parentProx?: any
 			if (rtn && !rtn[Constants.IsProxy] && rtn[Constants.HasProxy]) {
 				return rtn[Constants.HasProxy];
 			}
-			if (!parentProx && rtn && typeof rtn === "object" && !rtn[Constants.IsProxy]) {
+			if (!parentProx && rtn && typeof rtn === "object" && !rtn[Constants.IsProxy] && !Buffer.isBuffer(rtn)) {
 				return proxyInstance(rtn, parentProx || prox);
 			}
 			return rtn;

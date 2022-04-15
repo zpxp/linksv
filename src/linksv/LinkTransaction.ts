@@ -1077,9 +1077,11 @@ export class LinkTransaction {
 			if (typeof File !== "undefined" && val instanceof File) {
 				files.push(val);
 				val = { $file: files.length - 1, name: val.name, type: val.type };
-			}
-			if (Buffer.isBuffer(val)) {
+			} else if (Buffer.isBuffer(val)) {
 				files.push(val);
+				val = { $buf: files.length - 1 };
+			} else if (val && typeof val === "object" && val.type === "Buffer" && "data" in val) {
+				files.push(Buffer.from(val.data));
 				val = { $buf: files.length - 1 };
 			}
 			if (val === null) {

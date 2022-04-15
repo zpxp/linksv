@@ -587,6 +587,11 @@ export class LinkContext {
 					if (typeof file === "number") {
 						return { ...val, [deserializeFile]: true };
 					}
+				} else if ("$buf" in val) {
+					const file = val.$buf;
+					if (typeof file === "number") {
+						return { ...val, [deserializeFile]: true };
+					}
 				}
 				if ("~" in val) {
 					const chainClass = val["~"];

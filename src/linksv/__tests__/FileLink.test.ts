@@ -21,6 +21,13 @@ class LinkWithFile extends Link {
 	}
 }
 
+@LinkTemplate("LinkWithBuffer")
+class LinkWithBuffer extends Link {
+	constructor(public file: Buffer) {
+		super();
+	}
+}
+
 describe("Files", () => {
 	test("Should be instance of file and link", async () => {
 		const { tx, ctx, ctx2 } = prepare();
@@ -73,5 +80,25 @@ describe("Files", () => {
 		expect(loaded.file.name).toBe(inst.file.name);
 		expect(loaded.file.size).toBe(inst.file.size);
 		expect(loaded.file.type).toBe(inst.file.type);
+	});
+
+	test("Should read and write buffer to chain", async () => {
+		const { tx, ctx, ctx2 } = prepare();
+		const filebuf = await loadFile();
+
+		const inst = tx.update(() => new LinkWithBuffer(filebuf));
+		expect(inst).toBeInstanceOf(Link);
+		expect(inst.file.length).toBeGreaterThan(10);
+		const txid = await tx.publish();
+		expect(inst.location).toBe("0000000000000000000000000000000000000000000000000000000000000001_1");
+		ctx.purge(inst);
+
+		const { json, files } = await ctx.getRawChainData(txid);
+		expect(json).toBe('{"i":[-1],"o":[{"file":{"$buf":0},"nonce":1}]}');
+		expect(files.length).toBe(1);
+
+		const loaded = await ctx.load(LinkWithBuffer, inst.location);
+		expect(loaded.location).toBe("0000000000000000000000000000000000000000000000000000000000000001_1");
+		expect(loaded.file.length).toBe(inst.file.length);
 	});
 });
