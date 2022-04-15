@@ -24,6 +24,7 @@ export { BackendLinkProvider } from "./providers/BackendLinkProvider";
 export { MockProvider } from "./providers/MockProvider";
 export { LinkSv } from "./Constants";
 export { deepCopy } from "./Utils";
+export { FileLink } from "./FileLink";
 
 import { Address, Bn, KeyPair, Script, TxBuilder, Tx, Bw, Hash, OpCode } from "bsv";
 
