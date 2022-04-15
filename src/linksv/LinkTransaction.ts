@@ -403,10 +403,15 @@ export class LinkTransaction {
 			links = [links];
 		}
 		for (const link of links) {
-			const state = getUnderlying(link);
-			state.forkOf = state.location;
-			state.location = null;
-			this._record(LinkRecord.FORK, "<fork>", link, null, state, link.constructor as ILinkClass, []);
+			if (link.location) {
+				const state = getUnderlying(link);
+				state.forkOf = state.location;
+				state.location = null;
+				this._record(LinkRecord.FORK, "<fork>", link, null, state, link.constructor as ILinkClass, []);
+			} else {
+				// is new link, just copy it over
+				this._record(LinkRecord.NEW, link[LinkSv.TemplateName], link, null, getUnderlying(link), link.constructor as ILinkClass, []);
+			}
 		}
 	}
 

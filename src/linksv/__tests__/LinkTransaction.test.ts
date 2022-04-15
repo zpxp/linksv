@@ -226,4 +226,25 @@ describe("Link Transaction", () => {
 			'{"o":[{"origin":"0000000000000000000000000000000000000000000000000000000000000001_1","name":"name4","nonce":4}]}'
 		);
 	});
+
+	test("Should not fork new link", async () => {
+		let { tx, ctx } = prepare();
+
+		const inst = tx.update(() => new Sword("cool sword"));
+		tx.fork();
+		await tx.publish();
+		expect(inst.location).toBe("0000000000000000000000000000000000000000000000000000000000000001_1");
+		expect(inst.origin).toBe("0000000000000000000000000000000000000000000000000000000000000001_1");
+	});
+
+	test("Should not fork new link 2", async () => {
+		let { tx, ctx } = prepare();
+
+		const inst = tx.update(() => new Sword("cool sword"));
+		const newTx = new LinkTransaction();
+		newTx.fork(tx.outputs as Link[])
+		await newTx.publish();
+		expect(inst.location).toBe("0000000000000000000000000000000000000000000000000000000000000001_1");
+		expect(inst.origin).toBe("0000000000000000000000000000000000000000000000000000000000000001_1");
+	});
 });

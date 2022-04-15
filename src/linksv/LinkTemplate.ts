@@ -27,7 +27,7 @@ export function LinkTemplate(uniqueName: string) {
 					inst.owner = LinkContext.activeContext.owner.addressStr;
 				}
 				const prox = proxyInstance(inst);
-				LinkTransaction._record(LinkRecord.NEW, uniqueName, prox, null, null, template, argArray);
+				LinkTransaction._record(LinkRecord.NEW, uniqueName, prox, null, inst, template, argArray);
 				return prox;
 			},
 			defineProperty(): boolean {
