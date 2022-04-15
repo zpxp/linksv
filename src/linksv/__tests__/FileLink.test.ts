@@ -54,4 +54,24 @@ describe("Files", () => {
 		expect(loaded.file.size).toBe(inst.file.size);
 		expect(loaded.file.type).toBe(inst.file.type);
 	});
+
+	test("Should read file from chain with no app name", async () => {
+		const { tx, ctx, ctx2 } = prepare({ appName: "" });
+		const filebuf = await loadFile();
+
+		const inst = tx.update(() => new LinkWithFile(new File([filebuf], "image.png", { type: "image/png" })));
+		expect(inst).toBeInstanceOf(Link);
+		expect(inst.file.size).toBeGreaterThan(10);
+		expect(inst.file.name).toBe("image.png");
+		expect(inst.file.type).toBe("image/png");
+		const txid = await tx.publish();
+		expect(inst.location).toBe("0000000000000000000000000000000000000000000000000000000000000001_1");
+		ctx.purge(inst);
+
+		const loaded = await ctx.load(LinkWithFile, inst.location);
+		expect(loaded.location).toBe("0000000000000000000000000000000000000000000000000000000000000001_1");
+		expect(loaded.file.name).toBe(inst.file.name);
+		expect(loaded.file.size).toBe(inst.file.size);
+		expect(loaded.file.type).toBe(inst.file.type);
+	});
 });

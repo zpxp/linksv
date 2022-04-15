@@ -44,6 +44,15 @@ describe("Proxy", () => {
 		expect(tx2.outputs.length).toBe(1);
 	});
 
+	test("Should make outputs with no app name", async () => {
+		const { tx, ctx } = prepare({ appName: "" });
+		const inst = tx.update(() => new Test());
+		await tx.publish();
+		const tx2 = new LinkTransaction();
+		tx2.update(() => inst.setCount(2));
+		expect(tx2.outputs.length).toBe(1);
+	});
+
 	test("Should not make outputs", async () => {
 		const { tx, ctx } = prepare();
 		const inst = tx.update(() => new Test());
@@ -57,7 +66,7 @@ describe("Proxy", () => {
 		const { tx, ctx } = prepare();
 		const inst = tx.update(() => new Test());
 		tx.update(() => inst.setArrs([1, 2, 3, 4], [5, 6, 7, 8]));
-		expect(Array.isArray(inst.arr2)).toBe(true)
+		expect(Array.isArray(inst.arr2)).toBe(true);
 		expect(inst.arr.concat(inst.arr2)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
 	});
 

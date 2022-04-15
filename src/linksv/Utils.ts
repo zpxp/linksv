@@ -117,9 +117,9 @@ export type FileRef = {
 	[deserializeFile]?: boolean;
 	/** output index */
 	$file: number;
-	name:string,
+	name: string;
 	/** mime type */
-	type: string
+	type: string;
 };
 
 function isLinkRef(o: any): o is LinkRef {
@@ -138,4 +138,30 @@ export function chunk<T>(arr: T[], chunk: number): T[][] {
 		rtn.push(temporary);
 	}
 	return rtn;
+}
+
+interface ScriptChunk {
+	buf?: Buffer;
+	len?: number;
+	opCodeNum: number;
+}
+export function decodeChainBuffer(chunks: ScriptChunk[], ctx: LinkContext) {
+	let buf = ctx.compression.decompress(chunks[chunks.length - 1].buf);
+	// this could be the file offset header, appname or opcode
+	const possibleOffsetHeaderVal = chunks[chunks.length - 2].buf?.toString("utf8") || "";
+	const offsets: number[] = possibleOffsetHeaderVal.startsWith("[") ? JSON.parse(possibleOffsetHeaderVal) : null;
+	const buffers: Buffer[] = [];
+	if (offsets && offsets.length) {
+		// split files and json
+		offsets.reduce((start, end) => {
+			buffers.push(buf.slice(start, start + end));
+			return end;
+		}, 0);
+	} else {
+		buffers.push(buf);
+	}
+	const json = buffers[0].toString("utf8");
+	const files = buffers.slice(1);
+
+	return { json, files };
 }

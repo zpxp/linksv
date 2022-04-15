@@ -6,7 +6,7 @@ import { getUnderlying, proxyInstance } from "./InstanceProxy";
 import { InstanceStore } from "./InstanceStore";
 import { ILink, ILinkClass, LINK_DUST, Link } from "./Link";
 import { ChainRecord, LinkTransaction } from "./LinkTransaction";
-import { deepLink, deserializeFile, deserializeLink, LinkRef } from "./Utils";
+import { decodeChainBuffer, deepLink, deserializeFile, deserializeLink, LinkRef } from "./Utils";
 import { Constants, LinkSv } from "./Constants";
 import { IUtxoStore } from "./IUtxoStore";
 import { IndexedDbUtxoStore } from "./utxostores/IndexedDbUtxoStore";
@@ -544,21 +544,7 @@ export class LinkContext {
 		}
 
 		const chunks = scriptOut.script.chunks;
-		let buf = this.compression.decompress(chunks[chunks.length - 1].buf);
-		const offsets: number[] = JSON.parse(chunks[chunks.length - 2].buf?.toString("utf8") || null) || [];
-		const buffers: Buffer[] = [];
-		if (offsets.length) {
-			// split files and json
-			offsets.reduce((start, end) => {
-				buffers.push(buf.slice(start, start + end));
-				return end;
-			}, 0);
-		} else {
-			buffers.push(buf);
-		}
-		const json = buffers[0].toString("utf8");
-		const files = buffers.slice(1);
-
+		const { json, files } = decodeChainBuffer(chunks, this);
 		return { json, tx, files };
 	}
 

@@ -3,7 +3,7 @@ import { ILink, ILinkClass, LINK_DUST } from "./Link";
 import { Constants } from "./Constants";
 import { getUnderlying, proxyInstance } from "./InstanceProxy";
 import { Utxo } from "./IApiProvider";
-import { deepCopy, LinkRef } from "./Utils";
+import { decodeChainBuffer, deepCopy, LinkRef } from "./Utils";
 import * as bsv from "bsv";
 import { TxOut, Bn, PubKey, OpCode, Address, Script, TxIn, Tx } from "bsv";
 import { ProviderData } from "./ILinkProvider";
@@ -38,13 +38,8 @@ export class LinkTransaction {
 			this.txb = new bsv.TxBuilder(bsv.Tx.fromHex(raw));
 			if (linkReconstructor) {
 				const chunks = this.txb.tx.txOuts[0].script.chunks;
-				let buf = this.ctx.compression.decompress(chunks[chunks.length - 1].buf);
-				const offsets: number[] = JSON.parse(chunks[chunks.length - 2].buf?.toString("utf8") || null) || [];
-				if (offsets.length) {
-					// slice json segment
-					buf = buf.slice(0, offsets[0]);
-				}
-				const chainRecord: ChainRecord = JSON.parse(buf.toString("utf8"));
+				const { json } = decodeChainBuffer(chunks, this.ctx);
+				const chainRecord: ChainRecord = JSON.parse(json);
 				for (let index = 0; index < chainRecord.o.length; index++) {
 					const rawLink = chainRecord.o[index];
 					const inputIdx = chainRecord.i?.[index] ?? index;
@@ -1121,8 +1116,10 @@ export class LinkTransaction {
 		if (LinkContext.activeContext.app) {
 			script.writeBuffer(Buffer.from(LinkContext.activeContext.app));
 		}
-		// write offset header
-		script.writeBuffer(fileBufs.length ? Buffer.from(JSON.stringify(bufs.map(x => x.length))) : Buffer.alloc(0));
+		if (fileBufs.length) {
+			// write offset header
+			script.writeBuffer(Buffer.from(JSON.stringify(bufs.map(x => x.length))));
+		}
 		script.writeBuffer(data);
 		return script;
 	}

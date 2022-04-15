@@ -9,6 +9,7 @@ export function prepare(
 		compression?: ICompression;
 		purse?: PrivKey;
 		owner?: PrivKey;
+		appName?: string;
 	} = {}
 ) {
 	const pursePk = opts.purse || PrivKey.fromRandom();
@@ -25,7 +26,7 @@ export function prepare(
 		owner: ownerPk2.toString(),
 		allowSerializeNewLinks: opts.serialUntracked,
 		compression: opts.compression,
-		app: "test",
+		app: opts.appName ?? "test",
 		provider: opts.provider || new MockProvider(),
 		api: opts.api || new MockApi(true),
 		utxoStore: new MockUtxoStore()
@@ -36,7 +37,7 @@ export function prepare(
 		owner: ownerPk.toString(),
 		allowSerializeNewLinks: opts.serialUntracked,
 		compression: opts.compression,
-		app: "test",
+		app: opts.appName ?? "test",
 		provider: ctx2.provider,
 		api: ctx2.api,
 		utxoStore: ctx2.utxoStore
