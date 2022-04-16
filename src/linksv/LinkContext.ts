@@ -234,6 +234,10 @@ export class LinkContext {
 		templates: Array<{ template: ILinkClass; location: string }>,
 		opts: { trackInstances?: boolean } = {}
 	): Promise<ILink[]> {
+		if (templates.length === 1) {
+			const res = await this.load(templates[0].template, templates[0].location);
+			return [res];
+		}
 		const cleanupDefer = !this.loadDeferrer;
 		try {
 			opts.trackInstances ??= true;
@@ -495,6 +499,8 @@ export class LinkContext {
 			return existing as R;
 		}
 
+		const hasDefer = !!this.loadDeferrer;
+
 		const finalState = await deepLink(
 			state,
 			this,
@@ -536,15 +542,24 @@ export class LinkContext {
 		);
 
 		const c: R = Object.setPrototypeOf(finalState, link.prototype || link);
+		const existingInLoader = this.loadDeferrer?.get(state.location);
+		if (existingInLoader) {
+			(existingInLoader as any)[Constants.SetState] = c;
+			return existingInLoader as R;
+		}
+
 		const p = proxyInstance(c);
 
 		if (this.loadDeferrer) {
 			this.loadDeferrer.recordInstance(p);
-			await this.loadDeferrer.start();
-			const existing = this.loadDeferrer?.get(state.location);
-			if (existing) {
-				(existing as any)[Constants.SetState] = c;
-				return existing as R;
+			if (!hasDefer) {
+				// only start on the top most frame
+				await this.loadDeferrer.start();
+				const existing = this.loadDeferrer?.get(state.location);
+				if (existing) {
+					(existing as any)[Constants.SetState] = c;
+					return existing as R;
+				}
 			}
 		}
 
@@ -676,7 +691,7 @@ class LoadDeferrer {
 	pendingLocas: Map<string, { template: ILinkClass; proxy: ILink; loaded: boolean }> = new Map();
 
 	async start() {
-		const pending: { template: ILinkClass; proxy: ILink; location: string }[] = [];
+		let pending: { template: ILinkClass; proxy: ILink; location: string }[] = [];
 		for (const item of Array.from(this.pendingLocas)) {
 			if (item[1].loaded) {
 				continue;
@@ -690,6 +705,7 @@ class LoadDeferrer {
 		const res = await this.ctx.bulkLoadList(pending, { trackInstances: false });
 		for (const link of res) {
 			const location = link.location;
+			pending = pending.filter(x => x.location !== location);
 			const prox = this.pendingLocas.get(location)?.proxy as any;
 			if (!prox) {
 				continue;
@@ -709,6 +725,9 @@ class LoadDeferrer {
 				// track its instance
 				this.ctx.addInstance(prox);
 			}
+		}
+		if (pending.length) {
+			throw new Error(`Not all pending links were loaded ${pending.map(x => x.location + " " + x.template.templateName).join(", ")}`);
 		}
 		return true;
 	}
