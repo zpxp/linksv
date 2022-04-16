@@ -58,7 +58,6 @@ export class LinkTransaction {
 						proxyInstance(link),
 						deepCopy(link),
 						deepCopy(link),
-						link.constructor as ILinkClass,
 						[]
 					);
 					this.actions[this.actions.length - 1].outputIndex = index + 1;
@@ -215,7 +214,7 @@ export class LinkTransaction {
 		instance.nonce = 0;
 		const prox = proxyInstance(instance);
 		const uniqueName = (prox as any)[Constants.TemplateName];
-		this._record(LinkRecord.NEW, uniqueName, prox, null, deepCopy(instance), instance.constructor as ILinkClass, []);
+		this._record(LinkRecord.NEW, uniqueName, prox, null, deepCopy(instance), []);
 		return prox;
 	}
 
@@ -410,19 +409,11 @@ export class LinkTransaction {
 				const state = getUnderlying(link);
 				state.forkOf = state.location;
 				state.location = null;
-				this._record(LinkRecord.FORK, "<fork>", link, null, state, link.constructor as ILinkClass, []);
+				this._record(LinkRecord.FORK, "<fork>", link, null, state, []);
 			} else {
 				this.actions = this.actions.filter(x => x.linkProxy !== link);
 				// is new link, just copy it over
-				this._record(
-					LinkRecord.NEW,
-					link[LinkSv.TemplateName],
-					link,
-					null,
-					getUnderlying(link),
-					link.constructor as ILinkClass,
-					[]
-				);
+				this._record(LinkRecord.NEW, link[LinkSv.TemplateName], link, null, getUnderlying(link), []);
 			}
 		}
 	}
@@ -1139,22 +1130,14 @@ export class LinkTransaction {
 	 * @param postState underlying object post action (deep cloned)
 	 * @param args action args (function call etc)
 	 */
-	static _record(
-		type: LinkRecord,
-		target: string,
-		proxy: ILink,
-		preState: ILink,
-		postState: ILink,
-		fromTemplate: ILinkClass,
-		args: any[]
-	) {
+	static _record(type: LinkRecord, target: string, proxy: ILink, preState: ILink, postState: ILink, args: any[]) {
 		if (!LinkTransaction._currentTx) {
 			throw new Error("Links can only be updated inside a Transaction");
 		}
-		LinkTransaction._currentTx._record(type, target, proxy, preState, postState, fromTemplate, args);
+		LinkTransaction._currentTx._record(type, target, proxy, preState, postState, args);
 	}
 
-	_record(type: LinkRecord, target: string, proxy: ILink, preState: ILink, postState: ILink, fromTemplate: ILinkClass, args: any[]) {
+	_record(type: LinkRecord, target: string, proxy: ILink, preState: ILink, postState: ILink, args: any[]) {
 		this.actions.push({
 			type,
 			target,
@@ -1163,7 +1146,7 @@ export class LinkTransaction {
 			inOwner: proxy.owner,
 			preActionSnapshot: preState,
 			postActionSnapshot: postState,
-			fromTemplate,
+			fromTemplate: proxy[LinkSv.TemplateName],
 			linkProxy: proxy,
 			satoshis: proxy.satoshis
 		});
@@ -1188,7 +1171,7 @@ export type RecordAction = {
 	preActionSnapshot: ILink;
 	postActionSnapshot: ILink;
 	linkProxy: ILink;
-	fromTemplate: ILinkClass;
+	fromTemplate: string;
 	inOwner: string | Group;
 	satoshis: number;
 	outOwner: string | Group;

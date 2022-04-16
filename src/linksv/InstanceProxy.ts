@@ -64,7 +64,7 @@ export function proxyInstance<T extends object | Func>(inst: T, parentProx?: any
 				const postState = deepCopy(parent);
 				// record state change
 				const target = (inst as Func).name;
-				LinkTransaction._record(LinkRecord.CALL, target, thisArg, preState, postState, null, argArray);
+				LinkTransaction._record(LinkRecord.CALL, target, thisArg, preState, postState, argArray);
 			}
 			if (result && result[Constants.HasProxy]) {
 				return result[Constants.HasProxy];
