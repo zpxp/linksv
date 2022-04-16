@@ -15,6 +15,7 @@ import { TxBuilderLike } from "bsv/index";
 import { ICompression } from "./ICompression";
 import { ZLibCompression } from "./compression/ZLibCompression";
 import { MockUtxoStore } from "./utxostores/MockUtxoStore";
+import { Tx } from "bsv";
 
 const isBrowser = typeof window !== "undefined" && typeof window.document !== "undefined";
 
@@ -93,13 +94,21 @@ export class LinkContext {
 			LinkContext.activeContext = this;
 		}
 		this.store = new InstanceStore();
+		this.loadCache = new LoadCache(this);
 		this.params = {};
 	}
 
 	static templates: { [templateId: string]: ILinkClass } = {};
 	static chainClasses: { [chainClassName: string]: { new (...args: any[]): any } } = {};
 	static activeContext: LinkContext;
-	private loadDeferrer: LoadDeferrer;
+	private loadCache: LoadCache;
+
+	/**
+	 * Clear all loaded Tx values from the local cache
+	 */
+	clearTxCache() {
+		this.loadCache = new LoadCache(this);
+	}
 
 	/**
 	 * Set this LinkContext as the active context
@@ -185,7 +194,6 @@ export class LinkContext {
 		opts: { trackInstances?: boolean; checkOrigin?: boolean } = {}
 	): Promise<R> {
 		opts.trackInstances ??= true;
-		const cleanupDefer = !this.loadDeferrer;
 		try {
 			const storeInst = opts.checkOrigin
 				? this.store.getOrigin(location) || this.store.getLocation(location)
@@ -195,6 +203,7 @@ export class LinkContext {
 				return storeInst as R;
 			}
 			const { chainData, tx, files } = await this.getChainData(location);
+			this.loadCache.loadStaged();
 			let inst = await this.loadTx(template, location, chainData, files, tx);
 			if (opts.trackInstances) {
 				inst = this.addInstance(inst) as R;
@@ -203,10 +212,6 @@ export class LinkContext {
 		} catch (e) {
 			this.logger?.error(`Failed to load ${template.name} ${location}`, e);
 			throw e;
-		} finally {
-			if (cleanupDefer && this.loadDeferrer) {
-				this.loadDeferrer = null;
-			}
 		}
 	}
 
@@ -238,7 +243,6 @@ export class LinkContext {
 			const res = await this.load(templates[0].template, templates[0].location);
 			return [res];
 		}
-		const cleanupDefer = !this.loadDeferrer;
 		try {
 			opts.trackInstances ??= true;
 			templates = templates.filter(x => x.location);
@@ -247,6 +251,7 @@ export class LinkContext {
 			const missing = existing.filter(x => !x.res);
 
 			const res = await this.getBulkChainData(missing.map(x => x.x.location));
+			this.loadCache.loadStaged();
 			const zipped = zipArr(res, missing);
 			const loaded = await Promise.all(
 				zipped.map(x => this.loadTx(x[1].x.template, x[1].x.location, x[0].chainData, x[0].files, x[0].tx))
@@ -262,10 +267,6 @@ export class LinkContext {
 		} catch (e) {
 			this.logger?.error(`Failed to bulk load`, e);
 			throw e;
-		} finally {
-			if (cleanupDefer && this.loadDeferrer) {
-				this.loadDeferrer = null;
-			}
 		}
 	}
 
@@ -289,12 +290,12 @@ export class LinkContext {
 	 * @returns
 	 */
 	async getRawChainData(txid: string) {
-		const tx = await this.api.getTx(txid);
+		const tx = await this.loadCache.fetchTx(txid);
 		return this.processRawTx(txid, tx);
 	}
 
 	async getBulkRawChainData(txids: string[]) {
-		const txs = await this.api.getBulkTx(txids).then(x =>
+		const txs = await this.loadCache.bulkFetchTxMap(txids).then(x =>
 			Object.entries(x).map(([txid, tx]) => {
 				if (!tx || !txid) {
 					throw new Error(`Cannot find tx for one txid ${txid} `);
@@ -367,6 +368,7 @@ export class LinkContext {
 	 */
 	async deserialize<T>(json: string, trackNewInstances?: LinkTransaction): Promise<T> {
 		const data: T = this.processRawChainData<T>(json);
+		this.loadCache.loadStaged();
 
 		const finalState = await deepLink(
 			data,
@@ -380,27 +382,16 @@ export class LinkContext {
 				if (typeof idxOrLocation === "number") {
 					throw new Error("Invalid string passed to deserialize. Was it created with LinkContext.serialize ?");
 				} else {
-					const existing = this.loadDeferrer?.get(idxOrLocation) || this.store.getLocation(idxOrLocation);
+					const existing = this.store.getLocation(idxOrLocation);
 					if (existing) {
 						return Promise.resolve(existing);
 					}
-					if (!this.loadDeferrer) {
-						this.loadDeferrer = new LoadDeferrer(this);
-					}
-					return this.loadDeferrer.loadDeferred(type, idxOrLocation);
+					return this.load(type, idxOrLocation);
 				}
 			},
 			() => null,
 			link => this.handleDirtyLink(link)
 		);
-
-		if (this.loadDeferrer) {
-			if (finalState instanceof Link) {
-				this.loadDeferrer.recordInstance(finalState);
-			}
-			await this.loadDeferrer.start();
-			this.loadDeferrer = null;
-		}
 
 		return finalState;
 	}
@@ -432,11 +423,6 @@ export class LinkContext {
 	}
 
 	private handleDirtyLink(link: Link) {
-		const deferredLink = this.loadDeferrer?.get(link.location);
-		if (deferredLink) {
-			(deferredLink as any)[Constants.SetState] = link;
-			return deferredLink;
-		}
 		return this.addInstance(proxyInstance(link));
 	}
 
@@ -489,17 +475,10 @@ export class LinkContext {
 			state.owner = address.toString();
 		}
 
-		const existing = !isTemplateClass(state) && (this.store.getOrigin(state.origin) || this.loadDeferrer?.getOrigin(state.origin));
+		const existing = !isTemplateClass(state) && this.store.getOrigin(state.origin);
 		if (existing && existing.nonce >= state.nonce) {
-			const existingDefer = this.loadDeferrer?.get(state.location);
-			if (existingDefer && existingDefer !== existing) {
-				(existingDefer as any)[Constants.SetState] = getUnderlying(existing);
-				return existingDefer as R;
-			}
 			return existing as R;
 		}
-
-		const hasDefer = !!this.loadDeferrer;
 
 		const finalState = await deepLink(
 			state,
@@ -512,21 +491,18 @@ export class LinkContext {
 				}
 				if (typeof idxOrLocation === "number") {
 					const newLoca = txid + "_" + idxOrLocation;
-					const existing = this.loadDeferrer?.get(newLoca) || this.store.getLocation(newLoca);
+					const existing = this.store.getLocation(newLoca);
 					if (existing) {
 						return existing;
 					}
 					const p = await this.loadTx(type, newLoca, chainData, files, tx);
 					return this.addInstance(p);
 				} else {
-					const existing = this.loadDeferrer?.get(idxOrLocation) || this.store.getLocation(idxOrLocation);
+					const existing = this.store.getLocation(idxOrLocation);
 					if (existing) {
 						return existing;
 					}
-					if (!this.loadDeferrer) {
-						this.loadDeferrer = new LoadDeferrer(this);
-					}
-					return this.loadDeferrer.loadDeferred(type, idxOrLocation);
+					return this.load(type, idxOrLocation);
 				}
 			},
 			ref => {
@@ -542,26 +518,7 @@ export class LinkContext {
 		);
 
 		const c: R = Object.setPrototypeOf(finalState, link.prototype || link);
-		const existingInLoader = this.loadDeferrer?.get(state.location);
-		if (existingInLoader) {
-			(existingInLoader as any)[Constants.SetState] = c;
-			return existingInLoader as R;
-		}
-
 		const p = proxyInstance(c);
-
-		if (this.loadDeferrer) {
-			this.loadDeferrer.recordInstance(p);
-			if (!hasDefer) {
-				// only start on the top most frame
-				await this.loadDeferrer.start();
-				const existing = this.loadDeferrer?.get(state.location);
-				if (existing) {
-					(existing as any)[Constants.SetState] = c;
-					return existing as R;
-				}
-			}
-		}
 
 		return p as R;
 	}
@@ -610,6 +567,7 @@ export class LinkContext {
 				if ("$" in val) {
 					const loca = val.$;
 					if (typeof loca === "string") {
+						this.loadCache.stage(loca);
 						return { ...val, [deserializeLink]: true };
 					}
 				} else if ("$file" in val) {
@@ -683,93 +641,55 @@ function getKeys(pk: string): Keys {
 }
 
 /**
- * load deferrer batches api calls while maintaining same instance references
+ * cache loaded txs
  */
-class LoadDeferrer {
+class LoadCache {
 	constructor(private ctx: LinkContext) {}
 
-	pendingLocas: Map<string, { template: ILinkClass; proxy: ILink; loaded: boolean }> = new Map();
+	pendingTx: { [txid: string]: Promise<{ [txid: string]: Tx }> } = {};
+	stagedTxids: Set<string> = new Set();
 
-	async start() {
-		let pending: { template: ILinkClass; proxy: ILink; location: string }[] = [];
-		for (const item of Array.from(this.pendingLocas)) {
-			if (item[1].loaded) {
-				continue;
-			}
-			item[1].loaded = true;
-			pending.push({ ...item[1], location: item[0] });
-		}
-		if (!pending.length) {
-			return false;
-		}
-		const res = await this.ctx.bulkLoadList(pending, { trackInstances: false });
-		for (const link of res) {
-			const location = link.location;
-			pending = pending.filter(x => x.location !== location);
-			const prox = this.pendingLocas.get(location)?.proxy as any;
-			if (!prox) {
-				continue;
-			}
-			const existing = this.ctx.store.getLocation(prox.location);
-			if (!prox.nonce || prox.nonce < link.nonce) {
-				// update the proxy ref with the latest state
-				prox[Constants.SetState] = getUnderlying(link);
-
-				if (existing && existing !== prox) {
-					throw new Error(`Divergent references ${prox} ` + prox.location);
-				}
-				// now we track the instance
-				this.ctx.addInstance(prox);
-			}
-			if (!existing) {
-				// track its instance
-				this.ctx.addInstance(prox);
-			}
-		}
-		if (pending.length) {
-			throw new Error(`Not all pending links were loaded ${pending.map(x => x.location + " " + x.template.templateName).join(", ")}`);
-		}
-		return true;
+	stage(locationOrTxid: string) {
+		const txid = locationOrTxid.includes("_") ? locationOrTxid.split("_")[0] : locationOrTxid;
+		this.stagedTxids.add(txid);
 	}
 
-	get(location: string) {
-		if (this.pendingLocas.has(location)) {
-			return this.pendingLocas.get(location).proxy as Link;
+	loadStaged() {
+		const txids = Array.from(this.stagedTxids);
+		if (txids.length === 1) {
+			this.fetchTx(txids[0]);
+		} else {
+			this.bulkFetchTxMap(txids);
 		}
+		this.stagedTxids = new Set();
 	}
 
-	recordInstance(proxy: Link) {
-		const existing = this.getOrigin(proxy.origin);
-		if (existing) {
-			if (existing.nonce < proxy.nonce) {
-				(existing as any)[Constants.SetState] = getUnderlying(proxy);
-			}
-			return;
-		}
-
-		if (!this.pendingLocas.has(proxy.location)) {
-			this.pendingLocas.set(proxy.location, { template: null, proxy, loaded: true });
-		}
+	async fetchTx(txid: string) {
+		const res = await this.fetchTxMap(txid);
+		return res[txid];
 	}
 
-	getOrigin(origin: string) {
-		return Array.from(this.pendingLocas).find(x => x[1].proxy instanceof Link && x[1].proxy.origin === origin)?.[1].proxy;
+	private fetchTxMap(txid: string) {
+		if (!(txid in this.pendingTx)) {
+			const prom = this.ctx.api.getTx(txid).then(tx => ({ [txid]: tx }));
+			this.pendingTx[txid] = prom;
+		}
+
+		return this.pendingTx[txid];
 	}
 
-	loadDeferred<T extends ILinkClass, R extends InstanceType<T>>(template: T, location: string): Promise<R> {
-		const storeInst = this.ctx.store.getLocation(location);
-		if (storeInst) {
-			// return existing instance
-			return Promise.resolve(storeInst as R);
+	async bulkFetchTxMap(txids: string[]) {
+		const existing = txids.filter(x => x in this.pendingTx);
+		const rest = txids.filter(x => !(x in this.pendingTx));
+
+		const prom = this.ctx.api.getBulkTx(rest);
+
+		for (const txid of rest) {
+			this.pendingTx[txid] = prom;
 		}
 
-		if (this.pendingLocas.has(location)) {
-			return Promise.resolve(this.pendingLocas.get(location).proxy as R);
-		}
-
-		const proxy = proxyInstance({ location }) as Link;
-		this.pendingLocas.set(location, { template, proxy, loaded: false });
-		return Promise.resolve(proxy as R);
+		const res = await Promise.all([prom, ...existing.map(x => this.fetchTxMap(x))]);
+		return res.reduce((prev, next) => ({ ...prev, ...next }), {});
 	}
 }
 
