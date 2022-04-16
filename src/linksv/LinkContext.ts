@@ -671,7 +671,14 @@ class LoadCache {
 
 	private fetchTxMap(txid: string) {
 		if (!(txid in this.pendingTx)) {
-			const prom = this.ctx.api.getTx(txid).then(tx => ({ [txid]: tx }));
+			const prom = this.ctx.api
+				.getTx(txid)
+				.then(tx => ({ [txid]: tx }))
+				.catch(err => {
+					// clear bad promise from cache
+					delete this.pendingTx[txid];
+					throw err;
+				});
 			this.pendingTx[txid] = prom;
 		}
 
@@ -682,7 +689,13 @@ class LoadCache {
 		const existing = txids.filter(x => x in this.pendingTx);
 		const rest = txids.filter(x => !(x in this.pendingTx));
 
-		const prom = this.ctx.api.getBulkTx(rest);
+		const prom = this.ctx.api.getBulkTx(rest).catch(err => {
+			// clear bad promise from cache
+			for (const txid of rest) {
+				delete this.pendingTx[txid];
+			}
+			throw err;
+		});
 
 		for (const txid of rest) {
 			this.pendingTx[txid] = prom;
