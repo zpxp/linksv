@@ -3,6 +3,7 @@
 export { linkExternal } from "./InstanceProxy";
 export { LinkContext } from "./LinkContext";
 export { LinkTransaction, LinkRecord } from "./LinkTransaction";
+export type { RecordAction } from "./LinkTransaction";
 export { ChainClass } from "./ChainClass";
 export { LinkTemplate } from "./LinkTemplate";
 export { Link, LINK_DUST } from "./Link";

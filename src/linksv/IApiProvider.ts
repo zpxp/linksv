@@ -1,8 +1,9 @@
 import { Tx } from "bsv";
+import { RecordAction } from "./LinkTransaction";
 
 export interface IApiProvider {
 	getUnspentUtxos(address: string): Promise<Utxo[]>;
-	broadcast(txraw: string): Promise<string>;
+	broadcast(txraw: string, actions: RecordAction[]): Promise<string>;
 	getTx(txid: string): Promise<Tx>;
 	getBulkTx(txids: string[]): Promise<{[txid: string]: Tx}>;
 }

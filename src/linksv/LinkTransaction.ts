@@ -835,7 +835,7 @@ export class LinkTransaction {
 			const updateMap = new Map<string, ProviderData>();
 
 			const raw = this.txb.tx.toHex();
-			const txid = await this.ctx.api.broadcast(raw);
+			const txid = await this.ctx.api.broadcast(raw, this.actions);
 			this.txid = txid;
 
 			try {
@@ -1182,7 +1182,7 @@ export enum LinkRecord {
 	CALL = "CALL"
 }
 
-type RecordAction = {
+export type RecordAction = {
 	type: LinkRecord;
 	target: string;
 	preActionSnapshot: ILink;
