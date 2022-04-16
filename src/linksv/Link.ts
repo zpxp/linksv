@@ -116,13 +116,13 @@ export abstract class Link {
 			const latests = await LinkContext.activeContext.provider.bulkGetLatestLocationForOrigin(links.map(x => x.origin));
 			const mapped = Object.entries(latests).map(([origin, link]) => ({ link: links.find(l => l.origin === origin), latest: link }));
 			const needsUpdating = mapped.filter(x => x.latest && x.latest.location !== x.link.location && x.latest.nonce > x.link.nonce);
-			const result = await LinkContext.activeContext.bulkLoad(
+			const result = await LinkContext.activeContext.bulkLoadList(
 				needsUpdating.map(x => ({ template: Object.getPrototypeOf(x.link), location: x.latest.location })),
 				{ trackInstances: false }
 			);
-			for (const [location, link] of Object.entries(result)) {
+			for (const link of result) {
 				const updateThis = needsUpdating.find(
-					x => (link instanceof Link && x.link.origin === link.origin) || x.link.location === location
+					x => (link instanceof Link && x.link.origin === link.origin) || x.link.location === link.location
 				);
 				if (!updateThis) {
 					continue;

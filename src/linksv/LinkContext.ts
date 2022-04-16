@@ -211,7 +211,7 @@ export class LinkContext {
 	}
 
 	/**
-	 * Load a data link and return the link instance
+	 * Load a data link and return the link instances
 	 * @param templates An array of link locations to load and their corresponding template classes
 	 * @param opts
 	 * @returns
@@ -220,8 +220,23 @@ export class LinkContext {
 		templates: Array<{ template: ILinkClass; location: string }>,
 		opts: { trackInstances?: boolean } = {}
 	): Promise<{ [location: string]: ILink }> {
-		opts.trackInstances ??= true;
+		const rtn = await this.bulkLoadList(templates, opts);
+		return Object.fromEntries(rtn.map(x => [x.location, x]));
+	}
+
+	/**
+	 * Load a data link and return the link instances
+	 * @param templates An array of link locations to load and their corresponding template classes
+	 * @param opts
+	 * @returns
+	 */
+	async bulkLoadList(
+		templates: Array<{ template: ILinkClass; location: string }>,
+		opts: { trackInstances?: boolean } = {}
+	): Promise<ILink[]> {
+		const cleanupDefer = !this.loadDeferrer;
 		try {
+			opts.trackInstances ??= true;
 			templates = templates.filter(x => x.location);
 			const existing = templates.map(x => ({ x, res: this.store.getLocation(x.location) }));
 			const found = existing.filter(x => !!x.res);
@@ -238,15 +253,15 @@ export class LinkContext {
 					loaded[index] = this.addInstance(inst);
 				}
 			}
-			return Object.fromEntries(
-				found
-					.map(x => x.res)
-					.concat(loaded)
-					.map(x => [x.location, x])
-			);
+			const rtn = found.map(x => x.res).concat(loaded);
+			return rtn;
 		} catch (e) {
 			this.logger?.error(`Failed to bulk load`, e);
 			throw e;
+		} finally {
+			if (cleanupDefer && this.loadDeferrer) {
+				this.loadDeferrer = null;
+			}
 		}
 	}
 
@@ -672,9 +687,9 @@ class LoadDeferrer {
 		if (!pending.length) {
 			return false;
 		}
-		const res = await this.ctx.bulkLoad(pending, { trackInstances: false });
-		for (const location of Object.keys(res)) {
-			const link = res[location];
+		const res = await this.ctx.bulkLoadList(pending, { trackInstances: false });
+		for (const link of res) {
+			const location = link.location;
 			const prox = this.pendingLocas.get(location)?.proxy as any;
 			if (!prox) {
 				continue;
