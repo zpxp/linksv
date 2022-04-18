@@ -39,6 +39,7 @@ export class LinkContext {
 	readonly linkSatoshiValue: number;
 	readonly templateSatoshiValue: number;
 	readonly allowSerializeNewLinks: boolean;
+	readonly satoshisPerByteFee: number;
 
 	constructor(opts: {
 		purse: string;
@@ -52,6 +53,8 @@ export class LinkContext {
 		utxoStore?: IUtxoStore;
 		compression?: ICompression;
 		logger?: typeof console;
+		/** transaction fee to pay based on size */
+		satoshisPerByteFee?: number;
 		/**
 		 * only spend purse utxos with satoshi value greater than this. Set it to a value greater than linkSatoshiValue when using
 		 * the same wallet for purse and owner
@@ -78,6 +81,7 @@ export class LinkContext {
 		this.compression = opts.compression || new ZLibCompression();
 		this.provider = opts.provider;
 		this.app = opts.app;
+		this.satoshisPerByteFee = opts.satoshisPerByteFee || 0.1;
 		this.linkSatoshiValue = opts.linkSatoshiValue || LINK_DUST;
 		// this must be different to linkSatoshiValue so we dont spend a link by accident
 		this.templateSatoshiValue = opts.templateSatoshiValue || LINK_DUST - 1;

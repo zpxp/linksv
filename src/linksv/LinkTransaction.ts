@@ -75,6 +75,11 @@ export class LinkTransaction {
 		} else {
 			this.txb = new bsv.TxBuilder();
 		}
+		
+		this.txb.setDust(0);
+		if (this.ctx.satoshisPerByteFee) {
+			this.txb.setFeePerKbNum(this.ctx.satoshisPerByteFee * 1000);
+		}
 	}
 
 	private static _currentTx: LinkTransaction;
@@ -548,7 +553,6 @@ export class LinkTransaction {
 			await this.build();
 		}
 
-		this.txb.setDust(0);
 		const totalInputs = Array.from(this.txb.uTxOutMap.map)
 			.map(([txid, input]) => input)
 			.reduce((prev, next) => prev.add(next.valueBn), new Bn());
@@ -637,6 +641,11 @@ export class LinkTransaction {
 		if (this.txb.txOuts.length) {
 			this.txb = new bsv.TxBuilder();
 		}
+		this.txb.setDust(0);
+		if (this.ctx.satoshisPerByteFee) {
+			this.txb.setFeePerKbNum(this.ctx.satoshisPerByteFee * 1000);
+		}
+		
 		const cosigOutputs: Array<{ toAddrStr: string | Group; satoshis: number }> = [];
 		const uniqueEndLinks = new Map<ILink, RecordAction[]>();
 		const uniqueStartLinks = new Map<ILink, RecordAction[]>();
