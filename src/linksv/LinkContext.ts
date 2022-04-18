@@ -39,7 +39,7 @@ export class LinkContext {
 	readonly linkSatoshiValue: number;
 	readonly templateSatoshiValue: number;
 	readonly allowSerializeNewLinks: boolean;
-	readonly satoshisPerByteFee: number;
+	satoshisPerByteFee: number;
 
 	constructor(opts: {
 		purse: string;
