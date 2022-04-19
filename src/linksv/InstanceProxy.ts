@@ -32,6 +32,8 @@ export function proxyInstance<T extends object | Func>(inst: T, parentProx?: any
 					id: ++instNum
 			  };
 
+	const syms: Map<symbol, any> = new Map();
+
 	const prox = new Proxy<T>(proxyTarget as T, {
 		apply(funcProx: T, thisArg: any, argArray: any[]): any {
 			const isExternal = (funcProx as any)[Constants.ExternalFunc];
@@ -93,6 +95,9 @@ export function proxyInstance<T extends object | Func>(inst: T, parentProx?: any
 			if (p === "toString") {
 				return () => `[link ${(inst.constructor as ILinkClass).templateName}]`;
 			}
+			if (syms.has(p as symbol)) {
+				return syms.get(p as symbol);
+			}
 			const rtn = Reflect.get(inst, p, receiver);
 			// if the prop is on the root template and is a function, proxy it
 			if (typeof rtn === "function" && !nativeFunctions.includes(p as string)) {
@@ -145,6 +150,11 @@ export function proxyInstance<T extends object | Func>(inst: T, parentProx?: any
 			}
 			if (p === Constants.HasChanges) {
 				return Reflect.set(proxTarget, "hasChanges", value);
+			}
+			if (typeof p === "symbol") {
+				// we can set symbols because those aren't saved to chain during serialization
+				syms.set(p, value);
+				return true;
 			}
 
 			throw new Error(`Cannot set property outside method ${p as string} ${proxTarget}`);

@@ -61,7 +61,7 @@ export function LinkTemplate(uniqueName: string) {
 			// ownKeys(target: T): ArrayLike<string | symbol> {},
 			// preventExtensions(target: T): boolean {},
 			set(target: T, p: string | symbol, value: any): boolean {
-				if (p === Constants.HasChanges) {
+				if (p === Constants.HasChanges || typeof p === "symbol") {
 					return Reflect.set(target, p, value);
 				}
 				throw new Error("Cannot set property outside method");
