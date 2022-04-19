@@ -279,4 +279,29 @@ describe("Link Transaction", () => {
 		expect(chainTx.txIns.length).toBe(1);
 		expect(chainTx.txOuts.length).toBe(3);
 	});
+
+	test("Should record input indexes with destroyed equal to output", async () => {
+		let { tx, ctx } = prepare();
+
+		const inst1 = tx.update(() => new Sword("cool sword"));
+		const inst2 = tx.update(() => new Sword("cool sword"));
+		const inst3 = tx.update(() => new Sword("cool sword"));
+		await tx.publish();
+
+		tx = new LinkTransaction();
+		tx.update(() => new Sword("cool sword"));
+		tx.update(() => new Sword("cool sword"));
+		tx.update(() => {
+			inst1.destroy();
+			inst2.destroy();
+			inst3.destroy();
+		});
+		tx.update(() => new Sword("cool sword"));
+
+		const txid = await tx.publish();
+		const { json } = await ctx.getRawChainData(txid);
+		expect(json).toBe(
+			'{"i":[-1,-1,-1],"o":[{"name":"cool sword","nonce":1},{"name":"cool sword","nonce":1},{"name":"cool sword","nonce":1}],"d":[0,1,2]}'
+		);
+	});
 });

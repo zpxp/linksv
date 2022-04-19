@@ -1022,7 +1022,7 @@ export class LinkTransaction {
 	private async createScript(startLocations: string[], uniqueEnds: ILink[], destroyedLinks: ILink[]) {
 		const record: ChainRecord = {
 			i:
-				startLocations.length === uniqueEnds.length
+				startLocations.length === uniqueEnds.length && !destroyedLinks.length
 					? undefined
 					: uniqueEnds.map(x => {
 							return startLocations.indexOf(x.location);
