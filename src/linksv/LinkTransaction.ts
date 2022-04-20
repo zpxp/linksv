@@ -559,7 +559,10 @@ export class LinkTransaction {
 		const totalOutput = this.txb.txOuts.reduce((prev, next) => prev.add(next.valueBn), new Bn());
 		const inputOutputDifference = totalOutput.sub(totalInputs);
 		// include output difference in payment calculation
-		let estimatedFee = this.txb.estimateFee(inputOutputDifference.gt(0) ? inputOutputDifference : undefined).toNumber() * 1.2; // increase it a bit to account for payment input and output
+		let estimatedFee = Math.ceil(
+			// increase it a bit to account for payment input and output
+			this.txb.estimateFee(inputOutputDifference.gt(0) ? inputOutputDifference : undefined).toNumber() * 1.2
+		);
 
 		const payAddress = opts?.payFromAddress ? Address.fromString(opts.payFromAddress) : this.ctx.purse.address;
 		const payAddressStr = payAddress.toString();
