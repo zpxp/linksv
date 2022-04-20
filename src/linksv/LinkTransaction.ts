@@ -75,7 +75,7 @@ export class LinkTransaction {
 		} else {
 			this.txb = new bsv.TxBuilder();
 		}
-		
+
 		this.txb.setDust(0);
 		if (this.ctx.satoshisPerByteFee) {
 			this.txb.setFeePerKbNum(this.ctx.satoshisPerByteFee * 1000);
@@ -559,7 +559,7 @@ export class LinkTransaction {
 		const totalOutput = this.txb.txOuts.reduce((prev, next) => prev.add(next.valueBn), new Bn());
 		const inputOutputDifference = totalOutput.sub(totalInputs);
 		// include output difference in payment calculation
-		let estimatedFee = this.txb.estimateFee(inputOutputDifference.gt(0) ? inputOutputDifference : undefined).toNumber();
+		let estimatedFee = this.txb.estimateFee(inputOutputDifference.gt(0) ? inputOutputDifference : undefined).toNumber() * 1.2; // increase it a bit to account for payment input and output
 
 		const payAddress = opts?.payFromAddress ? Address.fromString(opts.payFromAddress) : this.ctx.purse.address;
 		const payAddressStr = payAddress.toString();
@@ -577,7 +577,7 @@ export class LinkTransaction {
 			yield local;
 			//then get utxos from miner api
 			yield await ctx.api.getUnspentUtxos(payAddressStr);
-			if (!opts.force) {
+			if (!opts?.force) {
 				throw new Error(`Not enough funds. Needed ${estimatedFee} more satoshis`);
 			}
 			return [];
@@ -645,7 +645,7 @@ export class LinkTransaction {
 		if (this.ctx.satoshisPerByteFee) {
 			this.txb.setFeePerKbNum(this.ctx.satoshisPerByteFee * 1000);
 		}
-		
+
 		const cosigOutputs: Array<{ toAddrStr: string | Group; satoshis: number }> = [];
 		const uniqueEndLinks = new Map<ILink, RecordAction[]>();
 		const uniqueStartLinks = new Map<ILink, RecordAction[]>();
