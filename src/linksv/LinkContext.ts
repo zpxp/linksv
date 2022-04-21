@@ -229,23 +229,9 @@ export class LinkContext {
 		templates: Array<{ template: ILinkClass; location: string }>,
 		opts: { trackInstances?: boolean } = {}
 	): Promise<{ [location: string]: Link }> {
-		const rtn = await this.bulkLoadList(templates, opts);
-		return Object.fromEntries(rtn.map(x => [x.location, x]));
-	}
-
-	/**
-	 * Load a data link and return the link instances
-	 * @param templates An array of link locations to load and their corresponding template classes
-	 * @param opts
-	 * @returns
-	 */
-	async bulkLoadList(
-		templates: Array<{ template: ILinkClass; location: string }>,
-		opts: { trackInstances?: boolean } = {}
-	): Promise<Link[]> {
 		if (templates.length === 1) {
 			const res = await this.load(templates[0].template, templates[0].location);
-			return [res];
+			return { [res.location]: res };
 		}
 		try {
 			opts.trackInstances ??= true;
@@ -267,11 +253,25 @@ export class LinkContext {
 				}
 			}
 			const rtn = found.map(x => x.res).concat(loaded);
-			return rtn;
+			return Object.fromEntries(rtn.map(x => [x.location, x]));
 		} catch (e) {
 			this.logger?.error(`Failed to bulk load`, e);
 			throw e;
 		}
+	}
+
+	/**
+	 * Load a data link and return the link instances
+	 * @param templates An array of link locations to load and their corresponding template classes
+	 * @param opts
+	 * @returns
+	 */
+	async bulkLoadList(
+		templates: Array<{ template: ILinkClass; location: string }>,
+		opts: { trackInstances?: boolean } = {}
+	): Promise<Link[]> {
+		const rtn = await this.bulkLoad(templates, opts);
+		return Object.entries(rtn).map(x => x[1]);
 	}
 
 	/**
