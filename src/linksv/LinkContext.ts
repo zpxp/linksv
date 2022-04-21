@@ -228,7 +228,7 @@ export class LinkContext {
 	async bulkLoad(
 		templates: Array<{ template: ILinkClass; location: string }>,
 		opts: { trackInstances?: boolean } = {}
-	): Promise<{ [location: string]: ILink }> {
+	): Promise<{ [location: string]: Link }> {
 		const rtn = await this.bulkLoadList(templates, opts);
 		return Object.fromEntries(rtn.map(x => [x.location, x]));
 	}
@@ -242,7 +242,7 @@ export class LinkContext {
 	async bulkLoadList(
 		templates: Array<{ template: ILinkClass; location: string }>,
 		opts: { trackInstances?: boolean } = {}
-	): Promise<ILink[]> {
+	): Promise<Link[]> {
 		if (templates.length === 1) {
 			const res = await this.load(templates[0].template, templates[0].location);
 			return [res];
