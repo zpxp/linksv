@@ -45,8 +45,16 @@ export class LinkTransaction {
 					const inputIdx = chainRecord.i?.[index] ?? index;
 					const input = inputIdx >= 0 ? this.txb.tx.txIns[inputIdx] : null;
 					const output = this.txb.tx.txOuts[index + 1];
-					if (output && isPublicKeyHashOut(output.script)) {
-						rawLink.owner = Address.fromPubKeyHashBuf(output.script.chunks[2].buf).toString();
+					if (output) {
+						if (isPublicKeyHashOut(output.script)) {
+							rawLink.owner = Address.fromPubKeyHashBuf(output.script.chunks[2].buf).toString();
+						} else if (isMultisigOut(output.script)) {
+							const threshold = output.script.chunks[0].opCodeNum - 80;
+							const keys = output.script.chunks
+								.slice(1, output.script.chunks.length - 2)
+								.map(x => bsv.PubKey.fromHex(x.buf.toString("hex")));
+							rawLink.owner = new Group(keys, threshold);
+						}
 					}
 					if (input) {
 						rawLink.location = Buffer.from(input.txHashBuf).reverse().toString("hex") + "_" + input.txOutNum;
