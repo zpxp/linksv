@@ -139,7 +139,10 @@ export class LinkTransaction {
 	get inputs() {
 		const uniqueStartLinks = new Set<ILink>();
 		for (const action of this.actions) {
-			if (action.preActionSnapshot?.location) {
+			if (
+				action.preActionSnapshot?.location &&
+				!this.actions.some(x => x.linkProxy === action.linkProxy && x.type === LinkRecord.FORK)
+			) {
 				uniqueStartLinks.add(action.preActionSnapshot);
 			}
 		}
@@ -418,11 +421,14 @@ export class LinkTransaction {
 		}
 		for (const link of links) {
 			if (link.location) {
+				const actions = this.actions.filter(x => x.linkProxy === link);
 				this.actions = this.actions.filter(x => x.linkProxy !== link);
 				const state = getUnderlying(link);
+				// record the earliest state within this transaction
+				const preState = actions.length ? actions[0].preActionSnapshot : null;
 				state.forkOf = state.location;
 				state.location = null;
-				this._record(LinkRecord.FORK, "<fork>", link, null, state, []);
+				this._record(LinkRecord.FORK, "<fork>", link, preState, state, []);
 			} else {
 				this.actions = this.actions.filter(x => x.linkProxy !== link);
 				// is new link, just copy it over
@@ -524,7 +530,22 @@ export class LinkTransaction {
 
 			// clear those actions from the tx
 			this.actions = this.actions.filter(x => x.linkProxy !== link);
+			if (link instanceof Link && link.forkOf && !link.location) {
+				const state = getUnderlying(link);
+				// reset location
+				state.location = state.forkOf;
+				state.forkOf = null;
+			}
 		} else {
+			for (const action of this.actions) {
+				const link = action.linkProxy;
+				if (link instanceof Link && link.forkOf && !link.location) {
+					const state = getUnderlying(link);
+					// reset location
+					state.location = state.forkOf;
+					state.forkOf = null;
+				}
+			}
 			this.txb = new bsv.TxBuilder();
 			this.lockTx = false;
 			this.actions = [];
@@ -667,10 +688,13 @@ export class LinkTransaction {
 				action.linkProxy,
 				this.actions.filter(x => x.linkProxy === action.linkProxy)
 			);
-			uniqueStartLinks.set(
-				this.actions.find(x => x.linkProxy === action.linkProxy).preActionSnapshot || action.linkProxy,
-				this.actions.filter(x => x.linkProxy === action.linkProxy)
-			);
+			if (!this.actions.some(x => x.linkProxy === action.linkProxy && x.type === LinkRecord.FORK)) {
+				// is input if has no forks
+				uniqueStartLinks.set(
+					this.actions.find(x => x.linkProxy === action.linkProxy).preActionSnapshot || action.linkProxy,
+					this.actions.filter(x => x.linkProxy === action.linkProxy)
+				);
+			}
 		}
 
 		/*

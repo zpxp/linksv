@@ -252,6 +252,38 @@ describe("Link Transaction", () => {
 		expect(inst.origin).toBe("0000000000000000000000000000000000000000000000000000000000000001_1");
 	});
 
+	test("Should clear fork", async () => {
+		let { tx, ctx } = prepare();
+
+		const inst = tx.update(() => new Sword("cool sword"));
+		await tx.publish();
+
+		tx = new LinkTransaction();
+		tx.update(() => inst.changeName("name"));
+		tx.fork();
+		expect(inst.location).toBe(null);
+		tx.update(() => inst.changeName("name2"));
+		tx.clear();
+		expect(inst.location).toBe("0000000000000000000000000000000000000000000000000000000000000001_1");
+		expect(inst.name).toBe("name2");
+	});
+
+	test("Should rollback fork", async () => {
+		let { tx, ctx } = prepare();
+
+		const inst = tx.update(() => new Sword("cool sword"));
+		await tx.publish();
+
+		tx = new LinkTransaction();
+		tx.update(() => inst.changeName("name"));
+		tx.fork();
+		expect(inst.location).toBe(null);
+		tx.update(() => inst.changeName("name2"));
+		tx.rollback();
+		expect(inst.location).toBe("0000000000000000000000000000000000000000000000000000000000000001_1");
+		expect(inst.name).toBe("cool sword");
+	});
+
 	test("Should fork and not make input", async () => {
 		const purse = PrivKey.fromRandom();
 		let { ctx, tx } = prepare({
