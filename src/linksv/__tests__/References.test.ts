@@ -168,4 +168,17 @@ describe("link", () => {
 		expect(iaa.name).toBe("name a");
 		expect(iaa.bs[0].name).toBe("name b");
 	});
+
+	test("Should only load top level link with shallow true", async () => {
+		const { txid, api, location } = await referenceHelper(true);
+		const { tx, ctx } = prepare({ api });
+		const a = await ctx.load(A, location, { shallow: true });
+		expect(a).toBeInstanceOf(A);
+		expect(a.bs.length).toBe(4);
+		expect(a.bs[0]).toEqual({ location: "0000000000000000000000000000000000000000000000000000000000000001_2", template: "B" });
+		expect(a.bs[1]).toEqual({ location: "0000000000000000000000000000000000000000000000000000000000000002_2", template: "B" });
+		expect(a.bs[2]).toEqual({ location: "0000000000000000000000000000000000000000000000000000000000000003_2", template: "B" });
+		expect(a.bs[3]).toEqual({ location: "0000000000000000000000000000000000000000000000000000000000000004_2", template: "B" });
+		expect(a.cs).toEqual({ location: "0000000000000000000000000000000000000000000000000000000000000004_1", template: "C" });
+	});
 });

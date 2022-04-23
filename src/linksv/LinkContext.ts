@@ -195,7 +195,7 @@ export class LinkContext {
 	async load<T extends ILinkClass, R extends InstanceType<T>>(
 		template: T,
 		location: string,
-		opts: { trackInstances?: boolean; checkOrigin?: boolean } = {}
+		opts: { trackInstances?: boolean; checkOrigin?: boolean; shallow?: boolean } = {}
 	): Promise<R> {
 		opts.trackInstances ??= true;
 		try {
@@ -208,7 +208,7 @@ export class LinkContext {
 			}
 			const { chainData, tx, files } = await this.getChainData(location);
 			this.loadCache.loadStaged();
-			let inst = await this.loadTx(template, location, chainData, files, tx);
+			let inst = await this.loadTx(template, location, chainData, files, tx, opts.shallow);
 			if (opts.trackInstances) {
 				inst = this.addInstance(inst) as R;
 			}
@@ -227,7 +227,7 @@ export class LinkContext {
 	 */
 	async bulkLoad(
 		templates: Array<{ template: ILinkClass; location: string }>,
-		opts: { trackInstances?: boolean } = {}
+		opts: { trackInstances?: boolean; shallow?: boolean } = {}
 	): Promise<{ [location: string]: Link }> {
 		if (templates.length === 1) {
 			const res = await this.load(templates[0].template, templates[0].location);
@@ -244,7 +244,7 @@ export class LinkContext {
 			this.loadCache.loadStaged();
 			const zipped = zipArr(res, missing);
 			const loaded = await Promise.all(
-				zipped.map(x => this.loadTx(x[1].x.template, x[1].x.location, x[0].chainData, x[0].files, x[0].tx))
+				zipped.map(x => this.loadTx(x[1].x.template, x[1].x.location, x[0].chainData, x[0].files, x[0].tx, opts.shallow))
 			);
 			if (opts.trackInstances) {
 				for (let index = 0; index < loaded.length; index++) {
@@ -435,7 +435,8 @@ export class LinkContext {
 		location: string,
 		chainData: ChainRecord,
 		files: Buffer[],
-		tx: bsv.Tx
+		tx: bsv.Tx,
+		shallow: boolean
 	): Promise<R> {
 		const [txid, output] = location.split("_", 2);
 
@@ -493,13 +494,17 @@ export class LinkContext {
 				if (!type) {
 					throw new Error(`Template class not found for type '${templateType}' location: ${idxOrLocation}`);
 				}
+				if (shallow) {
+					// dont load sub links
+					return { location: typeof idxOrLocation === "number" ? `${txid}_${idxOrLocation}` : idxOrLocation, template: templateType } ;
+				}
 				if (typeof idxOrLocation === "number") {
 					const newLoca = txid + "_" + idxOrLocation;
 					const existing = this.store.getLocation(newLoca);
 					if (existing) {
 						return existing;
 					}
-					const p = await this.loadTx(type, newLoca, chainData, files, tx);
+					const p = await this.loadTx(type, newLoca, chainData, files, tx, shallow);
 					return this.addInstance(p);
 				} else {
 					const existing = this.store.getLocation(idxOrLocation);

@@ -44,7 +44,7 @@ export async function deepLink<T>(
 	source: T,
 	ctx: LinkContext,
 	activeTx: LinkTransaction,
-	loadTx: (outputIdxOrLocation: number | string, templateType: string) => Promise<ILink>,
+	loadTx: (outputIdxOrLocation: number | string, templateType: string) => Promise<ILink | { location: string; template: string }>,
 	loadFile: (file: FileRef | BufferRef) => File | Buffer,
 	addInstance: (link: Link) => Link
 ): Promise<T> {
@@ -127,7 +127,6 @@ export type BufferRef = {
 	/** output index */
 	$buf: number;
 };
-
 
 function isLinkRef(o: any): o is LinkRef {
 	return o && typeof o === "object" && deserializeLink in o;
