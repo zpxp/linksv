@@ -268,7 +268,7 @@ export class LinkContext {
 	 */
 	async bulkLoadList(
 		templates: Array<{ template: ILinkClass; location: string }>,
-		opts: { trackInstances?: boolean } = {}
+		opts: { trackInstances?: boolean; shallow?: boolean } = {}
 	): Promise<Link[]> {
 		const rtn = await this.bulkLoad(templates, opts);
 		return Object.entries(rtn).map(x => x[1]);
@@ -496,7 +496,10 @@ export class LinkContext {
 				}
 				if (shallow) {
 					// dont load sub links
-					return { location: typeof idxOrLocation === "number" ? `${txid}_${idxOrLocation}` : idxOrLocation, template: templateType } ;
+					return {
+						location: typeof idxOrLocation === "number" ? `${txid}_${idxOrLocation}` : idxOrLocation,
+						template: templateType
+					};
 				}
 				if (typeof idxOrLocation === "number") {
 					const newLoca = txid + "_" + idxOrLocation;
