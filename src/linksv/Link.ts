@@ -124,7 +124,7 @@ export abstract class Link {
 				const updateThis = needsUpdating.find(
 					x => (link instanceof Link && x.link.origin === link.origin) || x.link.location === link.location
 				);
-				if (!updateThis) {
+				if (!updateThis || updateThis.link.nonce >= link.nonce) {
 					continue;
 				}
 				// this will overwrite this current instance
@@ -139,10 +139,12 @@ export abstract class Link {
 				if (!updated) {
 					throw new Error(`Cannot load location ${row.location} nothing found`);
 				}
-				// this will overwrite this current instance
-				(this as any)[Constants.SetState] = getUnderlying(updated);
-				(this as any)[Constants.HasChanges] = false;
-				return row.location;
+				if (this.nonce < updated.nonce) {
+					// this will overwrite this current instance
+					(this as any)[Constants.SetState] = getUnderlying(updated);
+					(this as any)[Constants.HasChanges] = false;
+				}
+				return this.location;
 			}
 			return null;
 		}
