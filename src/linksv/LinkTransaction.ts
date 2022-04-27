@@ -1132,9 +1132,14 @@ export class LinkTransaction {
 				return "-Infinity";
 			}
 			if (val instanceof Link) {
+				if (val.isDestroyed) {
+					throw new Error(
+						`Tried to record a destroyed link to chain. ${val.location} ${key} ${val}`
+					);
+				}
 				if (!(val as any)[Constants.HasProxy]) {
 					throw new Error(
-						`Tried to record a link to the chain that has no location, and was created with constructUntracked. ${key} ${val}`
+						`Tried to record an untracked link to chain, it was likely created with constructUntracked. ${key} ${val}`
 					);
 				}
 				val = { ...val };
