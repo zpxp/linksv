@@ -1,5 +1,5 @@
 import { Tx } from "bsv";
-import { LINK_DUST } from "..";
+import { ILink, LINK_DUST, RecordAction } from "..";
 import { IApiProvider, Utxo } from "../IApiProvider";
 
 /**
@@ -19,7 +19,7 @@ export class MockApi implements IApiProvider {
 			]
 		);
 	}
-	broadcast(txraw: string): Promise<string> {
+	broadcast(txraw: string, actions?: [ILink, RecordAction[]][]): Promise<string> {
 		const tx = Tx.fromHex(txraw);
 		const txid = this.useFakeHash ? pad(++this.count) : tx.hash().reverse().toString("hex");
 		this.mockStore[txid] = tx;
