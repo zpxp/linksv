@@ -19,6 +19,13 @@ Each class instance that is written to chain is called a link and the class defi
 - Optional template ownership enforces co-signing to validate links are authentic
 - Back-to-genesis problem is irrelevant as only your trusted apps control templates and their data; Link SV is not a layer 2 token protocol (though it would be possible to build a layer 2 token on Link SV)
 
+## How fast is it?
+
+Here is linksv used in a real world video game, showing 2 client battling each other in a PvP card game. All actions are written to chain in the lowest latency way possible, while still enabling backend validation.
+
+![Latency gif](./docs/example.gif)
+
+
 ## Installation
 
 ```
