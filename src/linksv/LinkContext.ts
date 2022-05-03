@@ -663,7 +663,10 @@ class LoadCache {
 
 	stage(locationOrTxid: string) {
 		const txid = locationOrTxid.includes("_") ? locationOrTxid.split("_")[0] : locationOrTxid;
-		this.stagedTxids.add(txid);
+		if (txid) {
+			// this may be falsy if it was a local location i.e. '_2'
+			this.stagedTxids.add(txid);
+		}
 	}
 
 	loadStaged() {
