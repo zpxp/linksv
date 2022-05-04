@@ -92,9 +92,13 @@ export class LinkTransaction {
 
 	private static _currentTx: LinkTransaction;
 
-	private static set currentTx(value: LinkTransaction) {
+	private static setCurrentTx(value: LinkTransaction) {
+		if (value === LinkTransaction._currentTx) {
+			return false;
+		}
 		value._lastTx = LinkTransaction._currentTx;
 		this._currentTx = value;
+		return true;
 	}
 
 	public static getCurrentTx() {
@@ -165,11 +169,13 @@ export class LinkTransaction {
 		if (this.lockTx) {
 			throw new Error("Transaction locked. Cannot update");
 		}
-		LinkTransaction.currentTx = this;
+		const shouldRemove = LinkTransaction.setCurrentTx(this);
 		try {
 			return action();
 		} finally {
-			LinkTransaction._currentTx = LinkTransaction._currentTx?._lastTx;
+			if (shouldRemove) {
+				LinkTransaction._currentTx = LinkTransaction._currentTx?._lastTx;
+			}
 		}
 	}
 
@@ -1133,9 +1139,7 @@ export class LinkTransaction {
 			}
 			if (val instanceof Link) {
 				if (val.isDestroyed) {
-					throw new Error(
-						`Tried to record a destroyed link to chain. ${val.location} ${key} ${val}`
-					);
+					throw new Error(`Tried to record a destroyed link to chain. ${val.location} ${key} ${val}`);
 				}
 				if (!(val as any)[Constants.HasProxy]) {
 					throw new Error(
