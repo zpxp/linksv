@@ -1,11 +1,11 @@
 import { Group, LinkContext, LinkSv, Link } from ".";
-import { ILink, ILinkClass, LINK_DUST } from "./Link";
+import { ILink, ILinkClass } from "./Link";
 import { Constants } from "./Constants";
 import { getUnderlying, proxyInstance } from "./InstanceProxy";
 import { Utxo } from "./IApiProvider";
 import { decodeChainBuffer, deepCopy, LinkRef } from "./Utils";
 import * as bsv from "bsv";
-import { TxOut, Bn, PubKey, OpCode, Address, Script, TxIn, Tx } from "bsv";
+import { TxOut, Bn, PubKey, Address, Script, TxIn, Tx } from "bsv";
 import { ProviderData } from "./ILinkProvider";
 
 export class LinkTransaction {

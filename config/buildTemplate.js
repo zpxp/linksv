@@ -106,7 +106,13 @@ function generateNodeBuild(entry, outputFolder, lib, overrideOpts) {
 				{ test: /\.tsx?$|\.jsx?$/, include: path.join(__dirname, "../src"), loader: "ts-loader" }
 			]
 		},
-		plugins: [new ESLintPlugin()],
+		plugins: [
+			new ESLintPlugin({
+				extensions: ["js", "ts"],
+				failOnError: true,
+				failOnWarning: false
+			})
+		],
 		...overrideOpts
 	};
 

@@ -152,7 +152,7 @@ interface ScriptChunk {
 	opCodeNum: number;
 }
 export function decodeChainBuffer(chunks: ScriptChunk[], ctx: LinkContext) {
-	let buf = ctx.compression.decompress(chunks[chunks.length - 1].buf);
+	const buf = ctx.compression.decompress(chunks[chunks.length - 1].buf);
 	// this could be the file offset header, appname or opcode
 	const possibleOffsetHeaderVal = chunks[chunks.length - 2].buf?.toString("utf8") || "";
 	const offsets: number[] = possibleOffsetHeaderVal.startsWith("[") ? JSON.parse(possibleOffsetHeaderVal) : null;

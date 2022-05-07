@@ -133,39 +133,6 @@ TxBuilder.prototype.signWithKeyPairs = function signWithKeyPairs(this: TxBuilder
 	return this;
 };
 
-TxBuilder.prototype.estimateSize = function estimateSize() {
-	// largest possible sig size. final 1 is for pushdata at start. second to
-	// final is sighash byte. the rest are DER encoding.
-	const sigSize = 1 + 1 + 1 + 1 + 32 + 1 + 1 + 32 + 1 + 1;
-	// length of script, y odd, x value - assumes compressed public key
-	const pubKeySize = 1 + 1 + 33;
-
-	let size = this.tx.toBuffer().length;
-
-	this.tx.txIns.forEach(txIn => {
-		const { txHashBuf, txOutNum } = txIn;
-		const sigOperations = this.sigOperations.get(txHashBuf, txOutNum);
-		sigOperations.forEach(obj => {
-			const { nScriptChunk, type } = obj;
-			if (txIn.script.chunks.length > 0 && txIn.script.chunks.length > nScriptChunk) {
-				const script = new Script([txIn.script.chunks[nScriptChunk]]);
-				const scriptSize = script.toBuffer().length;
-				size -= scriptSize;
-			}
-			if (type === "sig") {
-				size += sigSize;
-			} else if (obj.type === "pubKey") {
-				size += pubKeySize;
-			} else {
-				throw new Error("unsupported sig operations type");
-			}
-		});
-	});
-
-	// size = size + sigSize * this.tx.txIns.length
-	size = size + 1; // assume txInsVi increases by 1 byte
-	return Math.round(size);
-};
 
 TxBuilder.prototype.estimateSize = function estimateSize() {
 	// largest possible sig size. final 1 is for pushdata at start. second to

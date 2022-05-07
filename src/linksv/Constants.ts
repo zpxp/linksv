@@ -3,7 +3,6 @@ const _TemplateName = Symbol("__tname");
 const _UnderlyingInst = Symbol("__proxinst");
 const _SetState = Symbol("__setstate");
 const _HasChanges = Symbol("__haschanges");
-const _IteratorFunc = Symbol("__linkIterFunc");
 const _ExternalFunc = Symbol("__linkExternFunc");
 const _ChainClass = Symbol("__chainClass");
 const _HasProxy = Symbol("__hasProxy");

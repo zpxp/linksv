@@ -1,5 +1,5 @@
-import { Constants, LinkSv } from "./Constants";
-import { ILink, ILinkClass, Link } from "./Link";
+import { Constants } from "./Constants";
+import { ILinkClass, Link } from "./Link";
 import { LinkRecord, LinkTransaction } from "./LinkTransaction";
 import { deepCopy } from "./Utils";
 import { LinkContext } from "./LinkContext";
