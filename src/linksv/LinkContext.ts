@@ -728,18 +728,3 @@ function isTemplateClass(o: ILink): o is ILinkClass {
 function zipArr<T, G>(arr1: T[], arr2: G[]): [T, G][] {
 	return arr1.map((x, i) => [x, arr2[i]]);
 }
-
-/** debug function */
-(global as any)._deserial = async function (input: string) {
-	const [txid, output] = input.split("_", 2);
-
-	const { json } = await LinkContext.activeContext.getRawChainData(txid);
-	console.log(json);
-};
-
-(global as any)._latestLink = async function (input: string, templateName: string) {
-	const link = await LinkContext.activeContext.load(LinkContext.activeContext.getTemplate(templateName), input);
-	await link.sync(true);
-	console.log(link);
-	return link;
-};
