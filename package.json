@@ -1,6 +1,6 @@
 {
 	"name": "linksv",
-	"version": "0.4.27",
+	"version": "0.4.28",
 	"main": "lib/node.index.js",
 	"browser": "lib/index.js",
 	"repository": "git@github.com:zpxp/linksv.git",
