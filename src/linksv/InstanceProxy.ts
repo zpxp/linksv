@@ -38,10 +38,11 @@ export function proxyInstance<T extends object | Func>(inst: T, parentProx?: any
 		apply(funcProx: T, thisArg: any, argArray: any[]): any {
 			const isExternal = (funcProx as any)[Constants.ExternalFunc];
 			const parent = getUnderlying(thisArg) as Link;
-			if (parent.isDestroyed) {
-				throw new Error("Instance destroyed");
+			const destroyed = parent.isDestroyed;
+			if (destroyed && !(parent.constructor as ILinkClass).ignoreDestroyed) {
+				throw new Error("Instance destroyed " + parent.toString());
 			}
-			const triggerChainWrite = thisArg === parentProx && !isExternal;
+			const triggerChainWrite = thisArg === parentProx && !isExternal && !destroyed;
 			const preState = triggerChainWrite ? deepCopy(parent) : null;
 			const result: any = (inst as (...a: any[]) => void).apply(isExternal ? thisArg : parent, argArray);
 			if (

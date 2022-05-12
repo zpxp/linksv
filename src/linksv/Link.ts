@@ -43,6 +43,12 @@ export abstract class Link {
 	 */
 	declare static zeroSatInstances: boolean;
 
+	/**
+	 * If true, do not throw when calling functions on destroyed instances of this template. Changes to 
+	 * destroyed links will still not be written to chain.
+	 */
+	declare static ignoreDestroyed: boolean;
+
 	constructor() {
 		if (!(this.constructor as any)[LinkSv.IsProxy]) {
 			throw new Error("Cannot create a Template class instance without @LinkTemplate decorator: " + this.constructor.name);
@@ -170,6 +176,7 @@ export interface ILinkClass {
 	templateName: string;
 	constructUntracked?: boolean;
 	zeroSatInstances?: boolean;
+	ignoreDestroyed?: boolean
 	get isDestroyed(): boolean;
 
 	[LinkSv.IsProxy]?: boolean;

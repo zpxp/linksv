@@ -33,6 +33,19 @@ export class Car extends Link {
 	}
 }
 
+@LinkTemplate("IgnoreDestroy")
+export class IgnoreDestroy extends Link {
+	constructor() {
+		super();
+	}
+
+	action() {
+		return 1;
+	}
+
+	static ignoreDestroyed = true;
+}
+
 describe("link", () => {
 	test("Should destroy", async () => {
 		const mockProvider = new MockProvider();
@@ -66,6 +79,8 @@ describe("link", () => {
 		expect(inst.satoshis).toBe(0);
 		const { json } = await ctx.getRawChainData(txid);
 		expect(json).toBe('{"o":[],"d":[0]}');
+		tx = new LinkTransaction();
+		expect(() => tx.update(() => inst.doDestroy())).toThrow("Instance destroyed [object Car]");
 	});
 
 	test("Should load destroyed link", async () => {
@@ -160,5 +175,18 @@ describe("link", () => {
 		expect(json).toBe(
 			'{"o":[{"origin":"0000000000000000000000000000000000000000000000000000000000000001_1","name":"cool sword","nonce":2}]}'
 		);
+	});
+
+	test("Should ignore destroyed", async () => {
+		let { tx, ctx } = prepare();
+		const inst = tx.update(() => new IgnoreDestroy());
+		await tx.publish();
+		tx = new LinkTransaction();
+		tx.update(() => inst.destroy());
+		const res = tx.update(() => inst.action());
+		expect(res).toBe(1);
+		await tx.publish();
+		expect(inst.isDestroyed).toBe(true);
+		expect(inst.satoshis).toBe(0);
 	});
 });
