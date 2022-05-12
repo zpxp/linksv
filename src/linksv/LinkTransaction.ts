@@ -309,6 +309,7 @@ export class LinkTransaction {
 		}
 		// prevent any further modifications to this tx
 		this.lockTx = true;
+		this.txb.setDust(0);
 		if (this.external) {
 			// manual build
 			const outs = this.txb.buildOutputs();
