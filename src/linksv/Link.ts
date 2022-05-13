@@ -44,7 +44,7 @@ export abstract class Link {
 	declare static zeroSatInstances: boolean;
 
 	/**
-	 * If true, do not throw when calling functions on destroyed instances of this template. Changes to 
+	 * If true, do not throw when calling functions on destroyed instances of this template. Changes to
 	 * destroyed links will still not be written to chain.
 	 */
 	declare static ignoreDestroyed: boolean;
@@ -115,27 +115,38 @@ export abstract class Link {
 	 */
 	async sync(deep?: boolean) {
 		if (deep) {
-			// aggregate all the links to sync then bulk load them
-			// to save bandwidth and time
-			const links: Link[] = [];
-			collectLinks(this, links);
-			const latests = await LinkContext.activeContext.provider.bulkGetLatestLocationForOrigin(links.map(x => x.origin));
-			const mapped = Object.entries(latests).map(([origin, link]) => ({ link: links.find(l => l.origin === origin), latest: link }));
-			const needsUpdating = mapped.filter(x => x.latest && x.latest.location !== x.link.location && x.latest.nonce > x.link.nonce);
-			const result = await LinkContext.activeContext.bulkLoadList(
-				needsUpdating.map(x => ({ template: Object.getPrototypeOf(x.link), location: x.latest.location })),
-				{ trackInstances: false }
-			);
-			for (const link of result) {
-				const updateThis = needsUpdating.find(
-					x => (link instanceof Link && x.link.origin === link.origin) || x.link.location === link.location
-				);
-				if (!updateThis || updateThis.link.nonce >= link.nonce) {
-					continue;
+			for (let index = 0; ; index++) {
+				const links: Link[] = [];
+				// only load 1 level at a time incase syncing a parent link changes the children links
+				collectLinks(this, index, links);
+				if (!links.length) {
+					break;
 				}
-				// this will overwrite this current instance
-				(updateThis.link as any)[Constants.SetState] = getUnderlying(link);
-				(updateThis.link as any)[Constants.HasChanges] = false;
+				// aggregate all the links to sync then bulk load them
+				// to save bandwidth and time
+				const latests = await LinkContext.activeContext.provider.bulkGetLatestLocationForOrigin(links.map(x => x.origin));
+				const mapped = Object.entries(latests).map(([origin, link]) => ({
+					link: links.find(l => l.origin === origin),
+					latest: link
+				}));
+				const needsUpdating = mapped.filter(
+					x => x.latest && x.latest.location !== x.link.location && x.latest.nonce > x.link.nonce
+				);
+				const result = await LinkContext.activeContext.bulkLoadList(
+					needsUpdating.map(x => ({ template: Object.getPrototypeOf(x.link), location: x.latest.location })),
+					{ trackInstances: false }
+				);
+				for (const link of result) {
+					const updateThis = needsUpdating.find(
+						x => (link instanceof Link && x.link.origin === link.origin) || x.link.location === link.location
+					);
+					if (!updateThis || updateThis.link.nonce >= link.nonce) {
+						continue;
+					}
+					// this will overwrite this current instance
+					(updateThis.link as any)[Constants.SetState] = getUnderlying(link);
+					(updateThis.link as any)[Constants.HasChanges] = false;
+				}
 			}
 			return this.location;
 		} else {
@@ -176,7 +187,7 @@ export interface ILinkClass {
 	templateName: string;
 	constructUntracked?: boolean;
 	zeroSatInstances?: boolean;
-	ignoreDestroyed?: boolean
+	ignoreDestroyed?: boolean;
 	get isDestroyed(): boolean;
 
 	[LinkSv.IsProxy]?: boolean;
@@ -186,9 +197,14 @@ export interface ILinkClass {
 
 export type ILink = Link | ILinkClass;
 
-function collectLinks(item: any, links: Link[]) {
-	if (item instanceof Link && item.origin) {
+function collectLinks(item: any, targetLevel: number, links: Link[], currentLevel: number = 0) {
+	if (item instanceof Link && item.origin && targetLevel === currentLevel) {
 		links.push(item);
+	}
+
+	if (currentLevel > targetLevel) {
+		// short circuit
+		return;
 	}
 
 	// search children and sync
@@ -198,13 +214,13 @@ function collectLinks(item: any, links: Link[]) {
 		if (Array.isArray(val)) {
 			for (const arrItem of val) {
 				if (arrItem) {
-					collectLinks(arrItem, links);
+					collectLinks(arrItem, targetLevel, links, currentLevel + 1);
 				}
 			}
 		} else if (val instanceof Date || val instanceof Group) {
 			continue;
 		} else if (val && typeof val === "object") {
-			collectLinks(val, links);
+			collectLinks(val, targetLevel, links, currentLevel + 1);
 		}
 	}
 }

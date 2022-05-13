@@ -404,9 +404,20 @@ export class LinkContext {
 	 * Remove all links from the instance store with the same origin as the given link
 	 * @param link
 	 */
-	purge(link: Link) {
-		for (let inst = this.store.getOrigin(link.origin); inst; inst = this.store.getOrigin(link.origin)) {
-			this.store.remove(inst);
+	purge(link: Link): void;
+
+	/**
+	 * Remove all links from the instance store. Any links now loaded will be granted a new instance, meaning you may have multiple references to the same
+	 * link within your application. Use with caution.
+	 */
+	purge(): void;
+	purge(link?: Link) {
+		if (link) {
+			for (let inst = this.store.getOrigin(link.origin); inst; inst = this.store.getOrigin(link.origin)) {
+				this.store.remove(inst);
+			}
+		} else {
+			this.store.clear();
 		}
 	}
 

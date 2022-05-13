@@ -25,6 +25,10 @@ export class InstanceStore {
 		}
 	}
 
+	clear() {
+		this.instances = new WeakList()
+	}
+
 	remove(inst: Link) {
 		this.instances.remove(inst);
 	}
