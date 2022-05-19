@@ -3,6 +3,8 @@ import axios from "axios";
 import rateLimit from "axios-rate-limit";
 import * as bsv from "bsv";
 import { chunk } from "../Utils";
+import { ILink } from "../Link";
+import { RecordAction } from "../LinkTransaction";
 
 const http = rateLimit(axios.create(), { maxRPS: 3 });
 
@@ -47,7 +49,8 @@ export class WhatsOnChainApi implements IApiProvider {
 		);
 		return Object.fromEntries(res.flatMap(x => x.map(x => [x.hash().reverse().toString("hex"), x])));
 	}
-	broadcast(txraw: string): Promise<string> {
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	broadcast(txraw: string, actions?: [ILink, RecordAction[]][], isExternalTx?: boolean): Promise<string> {
 		const istest = bsv.Constants.Default === bsv.Constants.Testnet;
 		return http(`https://api.whatsonchain.com/v1/bsv/${istest ? "test" : "main"}/tx/raw`, {
 			method: "POST",

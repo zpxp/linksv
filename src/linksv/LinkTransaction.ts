@@ -877,7 +877,7 @@ export class LinkTransaction {
 			const updateMap = new Map<string, ProviderData>();
 
 			const raw = this.txb.tx.toHex();
-			const txid = await this.ctx.api.broadcast(raw, Array.from(uniqueLinks));
+			const txid = await this.ctx.api.broadcast(raw, Array.from(uniqueLinks), this.external);
 			this.txid = txid;
 
 			try {
@@ -888,7 +888,9 @@ export class LinkTransaction {
 					if (!action.linkProxy.isDestroyed) {
 						const underlying = getUnderlying(action.linkProxy);
 						underlying.location = `${txid}_${action.outputIndex}`;
-						underlying.nonce++;
+						if (!this.external) {
+							underlying.nonce++;
+						}
 						// if the first action was new or deploy we need to set origin
 						if (actions[0].type === LinkRecord.NEW || actions[0].type === LinkRecord.DEPLOY) {
 							(underlying as Link).origin = `${txid}_${action.outputIndex}`;
@@ -914,7 +916,9 @@ export class LinkTransaction {
 						const link = getUnderlying(action.linkProxy);
 						if (link) {
 							link.location = `${txid}_0`;
-							link.nonce++;
+							if (!this.external) {
+								link.nonce++;
+							}
 							updateMap.set(link.origin, {
 								location: link.location,
 								nonce: link.nonce,

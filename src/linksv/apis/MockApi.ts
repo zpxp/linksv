@@ -19,7 +19,8 @@ export class MockApi implements IApiProvider {
 			]
 		);
 	}
-	broadcast(txraw: string, actions?: [ILink, RecordAction[]][]): Promise<string> {
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	broadcast(txraw: string, actions?: [ILink, RecordAction[]][], isExternalTx?: boolean): Promise<string> {
 		const tx = Tx.fromHex(txraw);
 		const txid = this.useFakeHash ? pad(++this.count) : tx.hash().reverse().toString("hex");
 		this.mockStore[txid] = tx;

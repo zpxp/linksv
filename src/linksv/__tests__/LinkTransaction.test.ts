@@ -1,6 +1,8 @@
+/* eslint-disable prefer-const */
 import { Script, Tx, TxBuilder, Constants, Bn, OpCode, KeyPair, TxOut, TxVerifier, Interp, Address, PrivKey, PubKey } from "bsv";
 import { Link, LinkSv, LinkTransaction, MockProvider } from "..";
 import { MockApi } from "../apis/MockApi";
+import { getUnderlying } from "../InstanceProxy";
 import { LinkTemplate } from "../LinkTemplate";
 import { ChainRecord } from "../LinkTransaction";
 import { prepare } from "./Prepare.notest";
@@ -29,6 +31,9 @@ describe("Link Transaction", () => {
 			i: [-1],
 			o: [new TestLink()]
 		};
+
+		// first write to chain is nonce 1
+		chainRec.o[0].nonce = 1;
 
 		const data = ctx.compression.compress(Buffer.from(JSON.stringify(chainRec)));
 		const script = new Script();
@@ -63,7 +68,7 @@ describe("Link Transaction", () => {
 		const txid = await tx.publish({ pay: false, sign: true });
 		expect(txid).toBe("0000000000000000000000000000000000000000000000000000000000000001");
 		const { json } = await ctx.getRawChainData(txid);
-		expect(json).toBe('{"d":[0],"i":[-1],"o":[{"satoshis":111,"location":null,"origin":null,"testName":"name","nonce":0}]}');
+		expect(json).toBe('{"d":[0],"i":[-1],"o":[{"satoshis":111,"location":null,"origin":null,"testName":"name","nonce":1}]}');
 	});
 
 	test("Should import hex 2", async () => {
@@ -96,8 +101,12 @@ describe("Link Transaction", () => {
 			d: [1],
 			// indexes of new/existing inputs
 			i: [-1, 0],
-			o: [new TestLink(), inst]
+			o: [new TestLink(), getUnderlying(inst)]
 		};
+
+		// first write to chain is nonce 1
+		chainRec.o[0].nonce = 1;
+		chainRec.o[1].nonce++;
 
 		const data = ctx.compression.compress(Buffer.from(JSON.stringify(chainRec)));
 		const script = new Script();
