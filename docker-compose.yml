@@ -5,7 +5,6 @@ version: '3.4'
 services:
   provider:
     image: provider
-    network_mode: "host"        
     build:
       context: .
       dockerfile: src/provider/Dockerfile
