@@ -595,10 +595,8 @@ export class LinkTransaction {
 		const totalOutput = this.txb.txOuts.reduce((prev, next) => prev.add(next.valueBn), new Bn());
 		const inputOutputDifference = totalOutput.sub(totalInputs);
 		// include output difference in payment calculation
-		let estimatedFee = Math.ceil(
-			// increase it a bit to account for payment input and output
-			this.txb.estimateFee(inputOutputDifference.gt(0) ? inputOutputDifference : undefined).toNumber() * 1.2
-		);
+		let estimatedFee = Math.ceil(this.txb.estimateFee(inputOutputDifference.gt(0) ? inputOutputDifference : undefined).toNumber());
+		let lastInputFee = estimatedFee;
 
 		const payAddress = opts?.payFromAddress ? Address.fromString(opts.payFromAddress) : this.ctx.purse.address;
 		const payAddressStr = payAddress.toString();
@@ -625,6 +623,7 @@ export class LinkTransaction {
 		const fetchUtxos = getUtxos(this.ctx);
 		let paid = false;
 		let utxos: Utxo[];
+		const addedInputs: Set<string> = new Set();
 		do {
 			utxos = (await fetchUtxos.next()).value;
 
@@ -632,14 +631,27 @@ export class LinkTransaction {
 			while (((utxo = utxos.shift()), utxo)) {
 				// dont spend our link utxos
 				if (this.isValidPurseUtxo(utxo)) {
+					const key = utxo.tx_hash + utxo.tx_pos;
+					if (addedInputs.has(key)) {
+						// dont add it twice
+						continue;
+					}
 					const outputScript = bsv.Script.fromPubKeyHash(payAddress.hashBuf);
 					this.txb.inputFromPubKeyHash(
 						Buffer.from(utxo.tx_hash, "hex").reverse(),
 						utxo.tx_pos,
 						bsv.TxOut.fromProperties(new Bn(utxo.value), outputScript)
 					);
+					addedInputs.add(key);
 					this.ctx.logger?.log(`Input payment utxo ${utxo.tx_hash} ${utxo.tx_pos} ${utxo.value}`);
-					estimatedFee -= utxo.value;
+					const newFee = Math.ceil(
+						this.txb.estimateFee(inputOutputDifference.gt(0) ? inputOutputDifference : undefined).toNumber()
+					);
+					// accomadate for adding extra input
+					// get diff between last input and current one
+					const diff = newFee - lastInputFee;
+					lastInputFee = newFee;
+					estimatedFee -= utxo.value - diff;
 				}
 				if (estimatedFee < 0) {
 					// enough inputs

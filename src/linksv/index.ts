@@ -143,11 +143,6 @@ TxBuilder.prototype.estimateSize = function estimateSize() {
 
 	let size = this.tx.toBuffer().length;
 
-	if (!this.tx.txIns.length) {
-		// estimate size of single input
-		size += 300;
-	}
-
 	for (const txIn of this.tx.txIns) {
 		const { txHashBuf, txOutNum } = txIn;
 		const sigOperations = this.sigOperations.get(txHashBuf, txOutNum);
