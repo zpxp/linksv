@@ -2,6 +2,7 @@
 import { Script, Tx, TxBuilder, Constants, Bn, OpCode, KeyPair, TxOut, TxVerifier, Interp, Address, PrivKey, PubKey } from "bsv";
 import { Link, LinkSv, LinkTransaction, MockProvider } from "..";
 import { MockApi } from "../apis/MockApi";
+import { SigHash } from "../Constants";
 import { getUnderlying } from "../InstanceProxy";
 import { LinkTemplate } from "../LinkTemplate";
 import { ChainRecord } from "../LinkTransaction";
@@ -344,5 +345,24 @@ describe("Link Transaction", () => {
 		expect(json).toBe(
 			'{"i":[-1,-1,-1],"o":[{"name":"cool sword","nonce":1},{"name":"cool sword","nonce":1},{"name":"cool sword","nonce":1}],"d":[0,1,2]}'
 		);
+	});
+
+	test("Should sign with sighash none", async () => {
+		let { tx, ctx } = prepare();
+
+		const inst = tx.update(() => new Sword("cool sword"));
+		await tx.publish();
+
+		const [txid, idx] = inst.location.split("_", 2);
+		tx = new LinkTransaction();
+		tx.update(() => inst.changeName("gg"));
+		tx.setInputSignatureHashType(txid, idx, SigHash.NONE | SigHash.ANYONECANPAY);
+		const g = await tx.publish();
+		const { tx: result } = await ctx.getRawChainData(g);
+		const inputBuf = result.txIns[0].script.chunks[0].buf;
+		expect(inputBuf[inputBuf.length - 1]).toBe(SigHash.NONE | SigHash.ANYONECANPAY);
+		// purse input
+		const input2Buf = result.txIns[1].script.chunks[0].buf;
+		expect(input2Buf[input2Buf.length - 1]).toBe(SigHash.ALL | SigHash.FORKID);
 	});
 });

@@ -1,11 +1,11 @@
 import { Group, LinkContext, LinkSv, Link } from ".";
 import { ILink, ILinkClass } from "./Link";
-import { Constants } from "./Constants";
+import { Constants, SigHash } from "./Constants";
 import { getUnderlying, proxyInstance } from "./InstanceProxy";
 import { Utxo } from "./IApiProvider";
 import { decodeChainBuffer, deepCopy, LinkRef } from "./Utils";
 import * as bsv from "bsv";
-import { TxOut, Bn, PubKey, Address, Script, TxIn, Tx } from "bsv";
+import { TxOut, Bn, PubKey, Address, Script, TxIn, Tx, KeyPair } from "bsv";
 import { ProviderData } from "./ILinkProvider";
 
 export class LinkTransaction {
@@ -17,6 +17,7 @@ export class LinkTransaction {
 	private lockTx: boolean;
 	private _lastTx: LinkTransaction;
 	private additionalOutputs: Array<{ toAddrStr: string; satoshis: number }> = [];
+	private inputHashType: { [inLocation: string]: SigHash } = {};
 
 	constructor();
 	/**
@@ -321,6 +322,17 @@ export class LinkTransaction {
 	}
 
 	/**
+	 * Set the sig hash type for an unspent utxo that will be signed in this transaction. Used for payment channels.
+	 * @see Use Cases https://wiki.bitcoinsv.io/index.php/SIGHASH_flags
+	 * @param txid unspent utxo txid
+	 * @param txidOutputIndex unspent utxo output index
+	 * @param sigHash hash to sign with
+	 */
+	setInputSignatureHashType(txid: string, txidOutputIndex: number | string, sigHash: SigHash) {
+		this.inputHashType[txid + "_" + txidOutputIndex] = sigHash;
+	}
+
+	/**
 	 * When importing a tx, you may need to provide sigs before signing
 	 * @param inputTx tx being spent in this tx
 	 * @param addressStr address of signer
@@ -554,6 +566,7 @@ export class LinkTransaction {
 				}
 			}
 			this.txb = new bsv.TxBuilder();
+			this.inputHashType = {};
 			this.lockTx = false;
 			this.actions = [];
 			this.additionalOutputs = [];
@@ -574,6 +587,7 @@ export class LinkTransaction {
 			}
 			(action.linkProxy as any)[Constants.SetState] = action.preActionSnapshot;
 		}
+		this.inputHashType = {};
 		this.actions = [];
 		this.additionalOutputs = [];
 	}
@@ -631,8 +645,8 @@ export class LinkTransaction {
 			while (((utxo = utxos.shift()), utxo)) {
 				// dont spend our link utxos
 				if (this.isValidPurseUtxo(utxo)) {
-					const key = utxo.tx_hash + utxo.tx_pos;
-					if (addedInputs.has(key)) {
+					const location = utxo.tx_hash + "_" + utxo.tx_pos;
+					if (addedInputs.has(location)) {
 						// dont add it twice
 						continue;
 					}
@@ -640,9 +654,12 @@ export class LinkTransaction {
 					this.txb.inputFromPubKeyHash(
 						Buffer.from(utxo.tx_hash, "hex").reverse(),
 						utxo.tx_pos,
-						bsv.TxOut.fromProperties(new Bn(utxo.value), outputScript)
+						bsv.TxOut.fromProperties(new Bn(utxo.value), outputScript),
+						undefined,
+						undefined,
+						this.inputHashType[location]
 					);
-					addedInputs.add(key);
+					addedInputs.add(location);
 					this.ctx.logger?.log(`Input payment utxo ${utxo.tx_hash} ${utxo.tx_pos} ${utxo.value}`);
 					const newFee = Math.ceil(
 						this.txb.estimateFee(inputOutputDifference.gt(0) ? inputOutputDifference : undefined).toNumber()
@@ -1044,7 +1061,10 @@ export class LinkTransaction {
 			this.txb.inputFromPubKeyHash(
 				Buffer.from(location, "hex").reverse(),
 				outIdx,
-				TxOut.fromProperties(new Bn(satoshis), outputScript)
+				TxOut.fromProperties(new Bn(satoshis), outputScript),
+				undefined,
+				undefined,
+				this.inputHashType[inLocation]
 			);
 		} else {
 			const txHash = Buffer.from(location, "hex").reverse();

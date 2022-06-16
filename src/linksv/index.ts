@@ -23,7 +23,7 @@ export { MockUtxoStore } from "./utxostores/MockUtxoStore";
 export { MockApi } from "./apis/MockApi";
 export { BackendLinkProvider } from "./providers/BackendLinkProvider";
 export { MockProvider } from "./providers/MockProvider";
-export { LinkSv } from "./Constants";
+export { LinkSv, SigHash } from "./Constants";
 export { deepCopy } from "./Utils";
 export { FileLink } from "./FileLink";
 

@@ -26,3 +26,12 @@ export namespace LinkSv {
 	export const ChainClass: unique symbol = _ChainClass as any;
 	export const HasChanges: unique symbol = _HasChanges as any;
 }
+
+export enum SigHash {
+	UNSUPPORTED = 0,
+	ALL = 1,
+	NONE = 2,
+	SINGLE = 3,
+	FORKID = 0x40,
+	ANYONECANPAY = 0x80
+}
