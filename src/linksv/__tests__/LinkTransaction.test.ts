@@ -365,4 +365,18 @@ describe("Link Transaction", () => {
 		const input2Buf = result.txIns[1].script.chunks[0].buf;
 		expect(input2Buf[input2Buf.length - 1]).toBe(SigHash.ALL | SigHash.FORKID);
 	});
+
+	test("Should get estimated fee", async () => {
+		let { tx, ctx, ownerAddr2 } = prepare();
+
+		tx.update(() => new Sword("cool sword"));
+		await tx.build();
+		expect(tx.getEstimatedFee()).toBe(113);
+
+		tx = new LinkTransaction();
+		tx.update(() => new Sword("cool sword"));
+		tx.send(ownerAddr2.toString(), 1000);
+		await tx.build();
+		expect(tx.getEstimatedFee()).toBe(1113);
+	});
 });

@@ -593,6 +593,23 @@ export class LinkTransaction {
 	}
 
 	/**
+	 * Return the estimated fee in satoshis
+	 */
+	getEstimatedFee() {
+		if (!this.lockTx) {
+			throw new Error("LinkTransaction must be built before estimating fee. Call tx.build()");
+		}
+
+		const totalInputs = Array.from(this.txb.uTxOutMap.map)
+			.map(([txid, input]) => input)
+			.reduce((prev, next) => prev.add(next.valueBn), new Bn());
+		const totalOutput = this.txb.txOuts.reduce((prev, next) => prev.add(next.valueBn), new Bn());
+		const inputOutputDifference = totalOutput.sub(totalInputs);
+		// include output difference in payment calculation
+		return Math.ceil(this.txb.estimateFee(inputOutputDifference.gt(0) ? inputOutputDifference : undefined).toNumber());
+	}
+
+	/**
 	 * Pay with unspent utxos from the current context's purse address
 	 * @param payWith Spend these utxos first
 	 * @param payFromAddress Spend utxos from this address. Will require their signature
