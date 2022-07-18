@@ -131,7 +131,7 @@ export class LinkTransaction {
 	get outputs() {
 		const uniqueEndLinks = new Set<ILink>();
 		for (const action of this.actions) {
-			if (!action.linkProxy.isDestroyed) {
+			if (action.linkProxy && !action.linkProxy.isDestroyed) {
 				uniqueEndLinks.add(action.linkProxy);
 			}
 		}
