@@ -1,3 +1,4 @@
+import { getUnderlying } from "./InstanceProxy";
 import { Link } from "./Link";
 import { LinkTemplate } from "./LinkTemplate";
 
@@ -17,14 +18,17 @@ export class FileLink extends Link {
 	}
 
 	get file() {
-		return Buffer.isBuffer(this._obj) ? null : this._obj;
+		const raw = getUnderlying(this)
+		return Buffer.isBuffer(raw._obj) ? null : raw._obj;
 	}
 
 	get buffer() {
-		return Buffer.isBuffer(this._obj) ? this._obj : null;
+		const raw = getUnderlying(this)
+		return Buffer.isBuffer(raw._obj) ? raw._obj : null;
 	}
 
 	get value() {
-		return this._obj;
+		const raw = getUnderlying(this)
+		return raw._obj;
 	}
 }

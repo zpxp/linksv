@@ -11,7 +11,7 @@ axiosRetry(axios, {
 	},
 	retryCondition: error => {
 		// if retry condition is not specified, by default idempotent requests are retried
-		return error.response.status >= 400;
+		return error.response?.status >= 400;
 	}
 });
 
