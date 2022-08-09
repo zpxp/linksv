@@ -1,6 +1,6 @@
 // everything in this file is public outside the lib
 
-export { linkExternal } from "./InstanceProxy";
+export { linkExternal, getUnderlying } from "./InstanceProxy";
 export { LinkContext } from "./LinkContext";
 export { LinkTransaction, LinkRecord } from "./LinkTransaction";
 export type { RecordAction } from "./LinkTransaction";
