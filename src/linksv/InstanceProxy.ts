@@ -124,16 +124,16 @@ export function proxyInstance<T extends object | Func>(inst: T, parentProx?: any
 			return rtn;
 		},
 		ownKeys(_: T): ArrayLike<string | symbol> {
-			return Reflect.ownKeys(inst);
+			return inst ? Reflect.ownKeys(inst) : [];
 		},
 		getPrototypeOf(_: T): object | null {
-			return Object.getPrototypeOf(inst);
+			return inst && Object.getPrototypeOf(inst);
 		},
 		isExtensible(_: T): boolean {
 			return false;
 		},
 		has(_: T, p: string | symbol): boolean {
-			return Reflect.has(inst, p);
+			return inst ? Reflect.has(inst, p) : false;
 		},
 		preventExtensions(_: T): boolean {
 			return true;
