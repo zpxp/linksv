@@ -540,7 +540,10 @@ export class LinkContext {
 			link => this.handleDirtyLink(link)
 		);
 
-		const c: R = Object.setPrototypeOf(finalState, link.prototype || link);
+		let c: R = Object.setPrototypeOf(finalState, link.prototype || link);
+		if (this.deserializeTransformer) {
+			c = this.deserializeTransformer("", c);
+		}
 		const p = proxyInstance(c);
 
 		return p as R;
