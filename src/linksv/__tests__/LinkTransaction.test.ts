@@ -371,12 +371,34 @@ describe("Link Transaction", () => {
 
 		tx.update(() => new Sword("cool sword"));
 		await tx.build();
-		expect(tx.getEstimatedFee()).toBe(113);
+		expect(tx.getEstimatedFee()).toBe(122);
 
 		tx = new LinkTransaction();
 		tx.update(() => new Sword("cool sword"));
 		tx.send(ownerAddr2.toString(), 1000);
 		await tx.build();
-		expect(tx.getEstimatedFee()).toBe(1113);
+		expect(tx.getEstimatedFee()).toBe(1126);
+	});
+
+	test("Should get estimated fee 2", async () => {
+		let { tx, ctx, ownerAddr2 } = prepare();
+
+		if (ctx.api instanceof MockApi) {
+			// tests for bsv lib estimate size bug
+			ctx.api.unspentUtxos[ctx.purse.addressStr] = [
+				{ tx_pos: 2, tx_hash: "8888000000000000000000000000000000000000000000000000000000002220", value: 29 },
+				{ tx_pos: 3, tx_hash: "8888000000000000000000000000000000000000000000000000000000002220", value: 2000 }
+			];
+		}
+
+		tx.update(() => new Sword("cool sword"));
+		await tx.build();
+		expect(tx.getEstimatedFee()).toBe(122);
+
+		tx = new LinkTransaction();
+		tx.update(() => new Sword("cool sword"));
+		tx.send(ownerAddr2.toString(), 1000);
+		await tx.build();
+		expect(tx.getEstimatedFee()).toBe(1126);
 	});
 });

@@ -27,7 +27,7 @@ export { LinkSv, SigHash } from "./Constants";
 export { deepCopy } from "./Utils";
 export { FileLink } from "./FileLink";
 
-import { Address, Bn, KeyPair, Script, TxBuilder, Tx, Bw, Hash, OpCode } from "bsv";
+import { Address, KeyPair, Script, TxBuilder, Tx, Bw, Hash, OpCode } from "bsv";
 
 // bsv bug patching here
 
@@ -133,17 +133,24 @@ TxBuilder.prototype.signWithKeyPairs = function signWithKeyPairs(this: TxBuilder
 	return this;
 };
 
-
 TxBuilder.prototype.estimateSize = function estimateSize() {
 	// largest possible sig size. final 1 is for pushdata at start. second to
 	// final is sighash byte. the rest are DER encoding.
 	const sigSize = 1 + 1 + 1 + 1 + 32 + 1 + 1 + 32 + 1 + 1;
 	// length of script, y odd, x value - assumes compressed public key
 	const pubKeySize = 1 + 1 + 33;
+	const tx = new Tx();
 
-	let size = this.tx.toBuffer().length;
+	for (const txOut of this.txOuts) {
+		if (txOut.valueBn.lt(this.dust) && !txOut.script.isNonSpendable()) {
+			throw new Error("cannot create output lesser than dust");
+		}
+		tx.addTxOut(txOut);
+	}
 
-	for (const txIn of this.tx.txIns) {
+	let size = tx.toBuffer().length;
+
+	for (const txIn of this.txIns) {
 		const { txHashBuf, txOutNum } = txIn;
 		const sigOperations = this.sigOperations.get(txHashBuf, txOutNum);
 		for (const sig of sigOperations) {
