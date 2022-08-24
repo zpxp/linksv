@@ -147,6 +147,9 @@ TxBuilder.prototype.estimateSize = function estimateSize() {
 		}
 		tx.addTxOut(txOut);
 	}
+	for (const txIn of this.txIns) {
+		tx.addTxIn(txIn);
+	}
 	if (this.changeScript) {
 		tx.addTxOut(TxOut.fromProperties(new Bn(0), this.changeScript));
 	}
