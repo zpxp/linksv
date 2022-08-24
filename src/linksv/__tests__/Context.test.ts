@@ -78,6 +78,6 @@ describe("Context", () => {
 		const txid = await ltx.publish();
 		const { tx } = await ctx.getRawChainData(txid);
 		const change = tx.txOuts[tx.txOuts.length - 1].valueBn;
-		expect(balance.sub(change).toNumber()).toBe(1281);
+		expect(balance.sub(change).toNumber()).toBe(1451);
 	});
 });

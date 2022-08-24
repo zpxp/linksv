@@ -631,6 +631,7 @@ export class LinkTransaction {
 
 		const payAddress = opts?.payFromAddress ? Address.fromString(opts.payFromAddress) : this.ctx.purse.address;
 		const payAddressStr = payAddress.toString();
+		this.txb.setChangeAddress(payAddress);
 
 		async function* getUtxos(ctx: LinkContext): AsyncGenerator<Utxo[], []> {
 			if (opts?.payWith) {
@@ -699,8 +700,6 @@ export class LinkTransaction {
 			// save the remaining utxos
 			await this.ctx.utxoStore.setUnspent(this.ctx.purse.addressStr, utxos);
 		}
-
-		this.txb.setChangeAddress(payAddress);
 	}
 
 	/**

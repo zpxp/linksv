@@ -27,7 +27,7 @@ export { LinkSv, SigHash } from "./Constants";
 export { deepCopy } from "./Utils";
 export { FileLink } from "./FileLink";
 
-import { Address, KeyPair, Script, TxBuilder, Tx, Bw, Hash, OpCode } from "bsv";
+import { Address, KeyPair, Script, TxBuilder, Tx, Bw, Hash, OpCode, TxOut, Bn } from "bsv";
 
 // bsv bug patching here
 
@@ -146,6 +146,9 @@ TxBuilder.prototype.estimateSize = function estimateSize() {
 			throw new Error("cannot create output lesser than dust");
 		}
 		tx.addTxOut(txOut);
+	}
+	if (this.changeScript) {
+		tx.addTxOut(TxOut.fromProperties(new Bn(0), this.changeScript));
 	}
 
 	let size = tx.toBuffer().length;
