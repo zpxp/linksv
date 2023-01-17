@@ -2456,7 +2456,7 @@ declare module 'bsv/tx-builder' {
        */
       build(opts?: {
           useAllInputs: boolean;
-      }): Tx;
+      }): TxBuilder;
       sort(): this;
       /**
        * Check if all signatures are present in a multisig input script.

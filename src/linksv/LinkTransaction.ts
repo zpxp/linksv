@@ -316,8 +316,13 @@ export class LinkTransaction {
 			// manual build
 			const outs = this.txb.buildOutputs();
 			this.txb.buildInputs(outs);
-		} else if (!this.txb.tx.txOuts.length) {
-			this.txb.build({ useAllInputs: true });
+		} else {
+			if (!this.txb.txIns.length) {
+				// now inputs just build output. prob for arcane use
+				this.txb.buildOutputs();
+			} else if (!this.txb.tx.txOuts.length) {
+				this.txb.build({ useAllInputs: true });
+			}
 		}
 		this.txb.signWithKeyPairs([bsv.KeyPair.fromPrivKey(this.ctx.purse.privateKey), bsv.KeyPair.fromPrivKey(this.ctx.owner.privateKey)]);
 	}
@@ -911,7 +916,7 @@ export class LinkTransaction {
 			await this.sign();
 		}
 
-		if (this.isFullySigned()) {
+		if (this.isFullySigned() || (!opts.pay && this.tx?.txIns.length === 0)) {
 			// run pre checks
 			for (const action of this.actions) {
 				if (!action.linkProxy.isDestroyed && !action.outputIndex) {
