@@ -18,6 +18,7 @@ export class LinkTransaction {
 	private _lastTx: LinkTransaction;
 	private additionalOutputs: Array<{ toAddrStr: string; satoshis: number }> = [];
 	private inputHashType: { [inLocation: string]: SigHash } = {};
+	private defaultSigHashType: SigHash;
 
 	constructor();
 	/**
@@ -333,6 +334,14 @@ export class LinkTransaction {
 	}
 
 	/**
+	 * Set default sig hash type used for all inputs not overridden with `setInputSignatureHashType()`, when `build()` is called
+	 * @param sigHash
+	 */
+	setDefaultInputSignatureHashType(sigHash: SigHash) {
+		this.defaultSigHashType = sigHash;
+	}
+
+	/**
 	 * When importing a tx, you may need to provide sigs before signing
 	 * @param inputTx tx being spent in this tx
 	 * @param addressStr address of signer
@@ -567,6 +576,7 @@ export class LinkTransaction {
 			}
 			this.txb = new bsv.TxBuilder();
 			this.inputHashType = {};
+			this.defaultSigHashType = undefined;
 			this.lockTx = false;
 			this.actions = [];
 			this.additionalOutputs = [];
@@ -588,6 +598,7 @@ export class LinkTransaction {
 			(action.linkProxy as any)[Constants.SetState] = action.preActionSnapshot;
 		}
 		this.inputHashType = {};
+		this.defaultSigHashType = undefined;
 		this.actions = [];
 		this.additionalOutputs = [];
 	}
@@ -675,7 +686,7 @@ export class LinkTransaction {
 						bsv.TxOut.fromProperties(new Bn(utxo.value), outputScript),
 						undefined,
 						undefined,
-						this.inputHashType[location]
+						this.inputHashType[location] || this.defaultSigHashType
 					);
 					addedInputs.add(location);
 					this.ctx.logger?.log(`Input payment utxo ${utxo.tx_hash} ${utxo.tx_pos} ${utxo.value}`);
@@ -1080,7 +1091,7 @@ export class LinkTransaction {
 				TxOut.fromProperties(new Bn(satoshis), outputScript),
 				undefined,
 				undefined,
-				this.inputHashType[inLocation]
+				this.inputHashType[inLocation] || this.defaultSigHashType
 			);
 		} else {
 			const txHash = Buffer.from(location, "hex").reverse();
