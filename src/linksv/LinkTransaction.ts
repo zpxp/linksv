@@ -938,7 +938,7 @@ export class LinkTransaction {
 			const updateMap = new Map<string, ProviderData>();
 
 			const raw = this.txb.tx.toHex();
-			const txid = await this.ctx.api.broadcast(raw, Array.from(uniqueLinks), this.external);
+			const txid = await this.ctx.api.broadcast(raw, Array.from(uniqueLinks), this.external, this.txb.tx.txIns.length, this.txb.tx.txOuts.length);
 			this.txid = txid;
 
 			try {
