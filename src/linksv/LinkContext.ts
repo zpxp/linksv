@@ -195,7 +195,7 @@ export class LinkContext {
 	async load<T extends ILinkClass, R extends InstanceType<T>>(
 		template: T,
 		location: string,
-		opts: { trackInstances?: boolean; checkOrigin?: boolean; shallow?: boolean } = {}
+		opts: { trackInstances?: boolean; checkOrigin?: boolean; shallow?: boolean; ignoreMissingTemplates?: boolean } = {}
 	): Promise<R> {
 		opts.trackInstances ??= true;
 		try {
@@ -208,7 +208,7 @@ export class LinkContext {
 			}
 			const { chainData, tx, files } = await this.getChainData(location);
 			this.loadCache.loadStaged();
-			let inst = await this.loadTx(template, location, chainData, files, tx, opts.shallow);
+			let inst = await this.loadTx(template, location, chainData, files, tx, opts.shallow, opts.ignoreMissingTemplates);
 			if (opts.trackInstances) {
 				inst = this.addInstance(inst) as R;
 			}
@@ -227,7 +227,7 @@ export class LinkContext {
 	 */
 	async bulkLoad(
 		templates: Array<{ template: ILinkClass; location: string }>,
-		opts: { trackInstances?: boolean; shallow?: boolean } = {}
+		opts: { trackInstances?: boolean; shallow?: boolean; ignoreMissingTemplates?: boolean } = {}
 	): Promise<{ [location: string]: Link }> {
 		if (templates.length === 1) {
 			const res = await this.load(templates[0].template, templates[0].location);
@@ -244,7 +244,17 @@ export class LinkContext {
 			this.loadCache.loadStaged();
 			const zipped = zipArr(res, missing);
 			const loaded = await Promise.all(
-				zipped.map(x => this.loadTx(x[1].x.template, x[1].x.location, x[0].chainData, x[0].files, x[0].tx, opts.shallow))
+				zipped.map(x =>
+					this.loadTx(
+						x[1].x.template,
+						x[1].x.location,
+						x[0].chainData,
+						x[0].files,
+						x[0].tx,
+						opts.shallow,
+						opts.ignoreMissingTemplates
+					)
+				)
 			);
 			if (opts.trackInstances) {
 				for (let index = 0; index < loaded.length; index++) {
@@ -268,7 +278,7 @@ export class LinkContext {
 	 */
 	async bulkLoadList(
 		templates: Array<{ template: ILinkClass; location: string }>,
-		opts: { trackInstances?: boolean; shallow?: boolean } = {}
+		opts: { trackInstances?: boolean; shallow?: boolean; ignoreMissingTemplates?: boolean } = {}
 	): Promise<Link[]> {
 		const rtn = await this.bulkLoad(templates, opts);
 		return Object.entries(rtn).map(x => x[1]);
@@ -447,7 +457,8 @@ export class LinkContext {
 		chainData: ChainRecord,
 		files: Buffer[],
 		tx: bsv.Tx,
-		shallow: boolean
+		shallow: boolean,
+		ignoreMissingTemplates: boolean
 	): Promise<R> {
 		const [txid, output] = location.split("_", 2);
 
@@ -503,6 +514,9 @@ export class LinkContext {
 			async (idxOrLocation, templateType) => {
 				const type = LinkContext.templates[templateType];
 				if (!type) {
+					if (ignoreMissingTemplates) {
+						return null;
+					}
 					throw new Error(`Template class not found for type '${templateType}' location: ${idxOrLocation}`);
 				}
 				if (shallow) {
@@ -518,7 +532,7 @@ export class LinkContext {
 					if (existing) {
 						return existing;
 					}
-					const p = await this.loadTx(type, newLoca, chainData, files, tx, shallow);
+					const p = await this.loadTx(type, newLoca, chainData, files, tx, shallow, ignoreMissingTemplates);
 					return this.addInstance(p);
 				} else {
 					const existing = this.store.getLocation(idxOrLocation);
